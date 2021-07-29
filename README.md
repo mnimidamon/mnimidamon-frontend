@@ -1,4 +1,4 @@
-# mnimidamon frontend
+# ![logo](public/mnimidamon-frontend-icon.svg) mnimidamon frontend
 Frontend graphical interface for mnimidamon application developed with Fyne.io toolkit.
 
 # Http client code generation
