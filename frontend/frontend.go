@@ -24,27 +24,32 @@ func (ac *applicationContainer) Run() {
 	// Otherwise launch the main window.
 
 	if !services.ConfigurationStore.IsStored() {
-		ac.MainWindow.SetContent(views.StartScreen)
+		ac.SetMainContent(views.StartScreen)
 	} else {
-		ac.MainWindow.SetContent(views.LoginScreen)
+		ac.SetMainContent(views.LoginScreen)
 	}
 
 	// Else display main screen.
 	ac.MainWindow.ShowAndRun()
 }
 
+func (ac *applicationContainer) SetMainContent(object fyne.CanvasObject) {
+	object.Show()
+	ac.MainWindow.SetContent(object)
+}
+
 // Event handlers.
 func (ac *applicationContainer) HandleRequestLoginView() {
 	// Routing to request login view handler. Replace the MainWindow content to the LoginView
-	ac.MainWindow.SetContent(views.LoginScreen)
+	ac.SetMainContent(views.LoginScreen)
 }
 
 func (ac *applicationContainer) HandleRestartConfigurationHandler() {
-	ac.MainWindow.SetContent(views.StartScreen)
+	ac.SetMainContent(views.StartScreen)
 }
 
 func (ac *applicationContainer) HandleRequestRegisterView() {
-	ac.MainWindow.SetContent(views.RegisterScreen)
+	ac.SetMainContent(views.RegisterScreen)
 }
 
 // Constructor.
