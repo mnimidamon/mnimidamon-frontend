@@ -1,5 +1,6 @@
 package events
 
+// Event describes the selection of server configurations.
 var ConfirmServerConfig confirmServerConfig
 
 type ConfirmServerConfigPayload struct {

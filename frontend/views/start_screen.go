@@ -7,15 +7,15 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"mnimidamonbackend/frontend/events"
-	"mnimidamonbackend/frontend/views/global"
-	_ "mnimidamonbackend/frontend/views/global"
+	"mnimidamonbackend/frontend/global"
+	_ "mnimidamonbackend/frontend/global"
 	"net"
 	"os"
 	"strconv"
 	"time"
 )
 
-var StartScreen startScreen
+var StartScreen fyne.CanvasObject
 
 func init() {
 	portEntry := widget.NewEntry()
@@ -68,23 +68,26 @@ func init() {
 
 	form := &widget.Form{
 		Items: []*widget.FormItem{
-			widget.NewFormItem("Server address:", hostEntry),
-			widget.NewFormItem("Port:", portEntry),
-			widget.NewFormItem("Storage folder:", pathEntry),
+			widget.NewFormItem("Server address", hostEntry),
+			widget.NewFormItem("Port", portEntry),
+			widget.NewFormItem("Storage folder", pathEntry),
 			widget.NewFormItem("", buttonSelectFolder),
 		},
 
 		OnSubmit: func() {
 			folder := pathEntry.Text
-			port, _  := strconv.Atoi(portEntry.Text)
-			//host := hostEntry.Text
+			port, _ := strconv.Atoi(portEntry.Text)
+			host := hostEntry.Text
 
 			// Distribute the event for configuration.
-			events.ConfirmConfig.Trigger(events.ConfirmConfigPayload{
+			events.ConfirmServerConfig.Trigger(events.ConfirmServerConfigPayload{
 				FolderPath: folder,
-				Host:       "",
-				Port:		port,
+				Host:       host,
+				Port:       port,
 			})
+
+			// Request Navigation to the Login View.
+			events.RequestLoginView.Trigger()
 		},
 
 		OnCancel: func() {
@@ -94,9 +97,8 @@ func init() {
 		},
 	}
 
-
 	// The canvas object is our input form.
-	StartScreen.CanvasObject = container.NewPadded(
+	StartScreen = container.NewPadded(
 		container.NewVBox(
 			// Title bar.
 			widget.NewLabelWithStyle("mnimidamon setup", fyne.TextAlignCenter, fyne.TextStyle{
@@ -108,7 +110,7 @@ func init() {
 
 func checkConnection(host string, port string) error {
 	timeout := time.Millisecond * 100
-	conn, err := net.DialTimeout("tcp", host + ":" + port, timeout)
+	conn, err := net.DialTimeout("tcp", host+":"+port, timeout)
 
 	if err != nil {
 		global.Log("Error on host name input: %v", err)
@@ -120,8 +122,4 @@ func checkConnection(host string, port string) error {
 	}
 
 	return nil
-}
-
-type startScreen struct {
-	fyne.CanvasObject
 }
