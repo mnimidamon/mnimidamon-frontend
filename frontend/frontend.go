@@ -6,6 +6,7 @@ import (
 	"mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/services"
 	"mnimidamonbackend/frontend/views"
+	"time"
 )
 
 type ApplicationEntryPoint interface {
@@ -19,6 +20,12 @@ type applicationContainer struct {
 }
 
 func (ac *applicationContainer) Run() {
+	// Open the debug window.
+	go func() {
+		time.Sleep(time.Second)
+		ac.OpenDebugWindowView()
+	}()
+
 	// Get the first window that we have to show.
 	// If the configuration has not been stored yet then initialize the setup.
 	// Otherwise launch the main window.
@@ -34,8 +41,8 @@ func (ac *applicationContainer) Run() {
 }
 
 func (ac *applicationContainer) SetMainContent(object fyne.CanvasObject) {
-	object.Show()
 	ac.MainWindow.SetContent(object)
+	object.Show()
 }
 
 // Event handlers.
@@ -52,6 +59,20 @@ func (ac *applicationContainer) HandleRequestRegisterView() {
 	ac.SetMainContent(views.RegisterScreen)
 }
 
+func (ac *applicationContainer) HandleRequestComputerRegisterView() {
+	ac.SetMainContent(views.ComputerRegisterScreen)
+}
+
+func (ac *applicationContainer) HandleRequestMainView() {
+	ac.SetMainContent(views.MainScreen)
+}
+
+func (ac *applicationContainer) OpenDebugWindowView() {
+	dw := ac.App.NewWindow("Debug")
+	dw.SetContent(views.DebugView)
+	dw.Show()
+}
+
 // Constructor.
 func NewEntryPoint() ApplicationEntryPoint {
 	ac := &applicationContainer{
@@ -63,6 +84,8 @@ func NewEntryPoint() ApplicationEntryPoint {
 	events.RequestLoginView.Register(ac)
 	events.RequestRegisterView.Register(ac)
 	events.RestartConfiguration.Register(ac)
+	events.RequestComputerRegisterView.Register(ac)
+	events.RequestMainView.Register(ac)
 
 	return ac
 }

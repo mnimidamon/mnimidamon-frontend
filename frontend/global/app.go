@@ -13,9 +13,9 @@ var MainWindow fyne.Window
 
 func init() {
 	App = app.NewWithID("frontend.mnimidamon.marmiha.com")
-	App.SetIcon(resources.ResourceMnimidamonFrontendIconPng)
+	App.SetIcon(resources.MnimidamonFrontendIconPng)
 
 	MainWindow = App.NewWindow(" ")
 
-	Log("Fyne app initialized with id %v", App.UniqueID())
+	Log("Mnimidamon client initialized with id %v", App.UniqueID())
 }

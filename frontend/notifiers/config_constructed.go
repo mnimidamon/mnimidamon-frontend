@@ -3,7 +3,6 @@ package notifiers
 import (
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
-	"net"
 )
 
 func init() {
@@ -11,11 +10,18 @@ func init() {
 
 	events.ConfirmServerConfig.Register(constructedNotifier)
 	events.RestartConfiguration.Register(constructedNotifier)
+	events.ConfirmUserConfig.Register(constructedNotifier)
+	events.ConfirmComputerConfig.Register(constructedNotifier)
 }
 
 // Listen for when the config is fully constructed and notify the listeners.
 type configConstructedNotifier struct {
 	Config global.Config
+}
+
+func (i *configConstructedNotifier) HandleComputerConfirmConfig(config global.ComputerConfig) {
+	i.Config.Computer = &config
+	i.DistributeConfigDoneEventIfCompleted()
 }
 
 func (i *configConstructedNotifier) HandleRestartConfigurationHandler() {
@@ -24,11 +30,8 @@ func (i *configConstructedNotifier) HandleRestartConfigurationHandler() {
 	i.Config.Server = nil
 }
 
-func (i *configConstructedNotifier) HandleServerConfirmConfig(payload events.ConfirmServerConfigPayload) {
-	i.Config.Server = &global.ServerConfig{
-		ServerAddress: net.JoinHostPort(payload.Host, string(rune(payload.Port))),
-		FolderPath:    payload.FolderPath,
-	}
+func (i *configConstructedNotifier) HandleServerConfirmConfig(payload global.ServerConfig) {
+	i.Config.Server = &payload
 	i.DistributeConfigDoneEventIfCompleted()
 }
 

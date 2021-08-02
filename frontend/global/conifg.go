@@ -25,6 +25,7 @@ type ComputerConfig struct {
 
 // Server settings.
 type ServerConfig struct {
-	ServerAddress string
-	FolderPath    string
+	Host       string
+	Port       int
+	FolderPath string
 }

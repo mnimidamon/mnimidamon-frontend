@@ -10,8 +10,9 @@ import (
 var (
 	isStoredField = "IS_STORED"
 
-	serverAddressField = "SERVER_ADDRESS"
-	folderPathKey      = "FOLDER_PATH"
+	serverHostField = "SERVER_HOST"
+	serverPortField = "SERVER_PORT"
+	folderPathKey   = "FOLDER_PATH"
 
 	userId        = "USER_ID"
 	usernameField = "USERNAME"
@@ -51,7 +52,8 @@ func (i *configurationStore) SaveConfig(c *global.Config) {
 	i.preferences.SetString(userKeyField, c.User.Key)
 	i.preferences.SetString(computerKeyField, c.Computer.Key)
 	i.preferences.SetString(computerNameField, c.Computer.Name)
-	i.preferences.SetString(serverAddressField, c.Server.ServerAddress)
+	i.preferences.SetString(serverHostField, c.Server.Host)
+	i.preferences.SetInt(serverPortField, c.Server.Port)
 	i.preferences.SetString(folderPathKey, c.Server.FolderPath)
 	i.preferences.SetInt(userId, int(c.User.UserID))
 	i.preferences.SetInt(computerId, int(c.Computer.ComputerID))
@@ -79,8 +81,9 @@ func (i *configurationStore) GetConfig() *global.Config {
 			Key: i.preferences.String(computerKeyField),
 		},
 		Server: &global.ServerConfig{
-			ServerAddress: i.preferences.String(serverAddressField),
-			FolderPath:    i.preferences.String(folderPathKey),
+			Host:       i.preferences.String(serverHostField),
+			Port:       i.preferences.Int(serverPortField),
+			FolderPath: i.preferences.String(folderPathKey),
 		},
 	}
 }

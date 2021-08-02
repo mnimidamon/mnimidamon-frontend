@@ -1,16 +1,12 @@
 package events
 
+import "mnimidamonbackend/frontend/global"
+
 // Event describes the selection of server configurations.
 var ConfirmServerConfig confirmServerConfig
 
-type ConfirmServerConfigPayload struct {
-	FolderPath string
-	Host       string
-	Port       int
-}
-
 type ConfirmServerConfigHandler interface {
-	HandleServerConfirmConfig(payload ConfirmServerConfigPayload)
+	HandleServerConfirmConfig(payload global.ServerConfig)
 }
 
 type confirmServerConfig struct {
@@ -21,7 +17,7 @@ func (e *confirmServerConfig) Register(handler ConfirmServerConfigHandler) {
 	e.handlers = append(e.handlers, handler)
 }
 
-func (e *confirmServerConfig) Trigger(payload ConfirmServerConfigPayload) {
+func (e *confirmServerConfig) Trigger(payload global.ServerConfig) {
 	for _, handler := range e.handlers {
 		go handler.HandleServerConfirmConfig(payload)
 	}

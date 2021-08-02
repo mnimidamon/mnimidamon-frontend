@@ -9,6 +9,7 @@ import (
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
 	_ "mnimidamonbackend/frontend/global"
+	"mnimidamonbackend/frontend/resources"
 	"net"
 	"os"
 	"strconv"
@@ -62,7 +63,7 @@ func init() {
 	}, global.MainWindow)
 
 	// Show the dialog and its window.
-	buttonSelectFolder := widget.NewButton("Select folder", func() {
+	buttonSelectFolder := widget.NewButtonWithIcon("Select folder", resources.FolderOpenSvg,func() {
 		selectFolderDialog.Show()
 	})
 
@@ -80,7 +81,7 @@ func init() {
 			host := hostEntry.Text
 
 			// Distribute the event for configuration.
-			events.ConfirmServerConfig.Trigger(events.ConfirmServerConfigPayload{
+			events.ConfirmServerConfig.Trigger(global.ServerConfig{
 				FolderPath: folder,
 				Host:       host,
 				Port:       port,
