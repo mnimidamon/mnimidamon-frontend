@@ -10,4 +10,5 @@ require (
 	github.com/go-openapi/swag v0.19.15
 	github.com/go-openapi/validate v0.20.2
 	github.com/lucor/fynematic v0.0.0-20210606153110-9e1470accb54 // indirect
+	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
 )

@@ -5,6 +5,8 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"github.com/go-openapi/strfmt"
+	"mnimidamonbackend/client/authorization"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
 	_ "mnimidamonbackend/frontend/global"
@@ -46,6 +48,7 @@ func init() {
 	}
 
 	toolbarLabel := widget.NewLabelWithStyle("user registration", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	errorLabel := fragments.NewFlashingLabel()
 
 	toolbar := widget.NewToolbar(
 		fragments.NewToolbarLabel(toolbarLabel),
@@ -55,6 +58,7 @@ func init() {
 		}),
 	)
 
+
 	form := &widget.Form{
 		Items: []*widget.FormItem{
 			widget.NewFormItem("Username", usernameEntry),
@@ -62,35 +66,55 @@ func init() {
 			widget.NewFormItem("", passwordRepeatEntry),
 		},
 		OnSubmit: func() {
-			username, _ := usernameEntry.Text, passwordEntry.Text
+			username, password := usernameEntry.Text, passwordEntry.Text
 
-			// TODO HTTP CALL ON LOGIN.
+			go func() {
+				// TODO: LOADING?
 
-			//
+				// Call the backend endpoint.
+				resp, err := mnimidamon.Authorization.RegisterUser(&authorization.RegisterUserParams{
+					Body: &models.RegisterPayload{
+						Password: (*strfmt.Password)(&password),
+						Username: &username,
+					},
+					Context: apiContext,
+				})
 
-			// Inform about the configuration confirm.
-			events.ConfirmUserConfig.Trigger(global.UserConfig{
-				User: models.User{
-					UserID:   0,
-					Username: username,
-				},
-				Key: "",
-			})
+				if err != nil {
+					if respError, ok := err.(*authorization.RegisterUserBadRequest); ok {
+						errorLabel.ShowMessage(respError.Payload.Code)
+					} else {
+						errorLabel.ShowMessage(err.Error())
+					}
+					return
+				}
 
-			// Navigate to computer name input.
-			events.RequestComputerRegisterView.Trigger()
+				// Inform about the user configuration.
+				events.ConfirmUserConfig.Trigger(global.UserConfig{
+					User: models.User{
+						UserID:   resp.Payload.User.UserID,
+						Username: resp.Payload.User.Username,
+					},
+					Key: *resp.Payload.APIKey,
+				})
+
+				// Navigate to computer name input.
+				events.RequestComputerRegisterView.Trigger()
+			}()
 		},
 		OnCancel: func() {
 			usernameEntry.SetText("")
 			passwordEntry.SetText("")
 			passwordRepeatEntry.SetText("")
 		},
-		SubmitText: "Login",
+		SubmitText: "Register",
 		CancelText: "Reset",
 	}
 
 	RegisterScreen = container.NewVBox(
 		toolbar,
 		form,
+		container.NewCenter(errorLabel),
 	)
+
 }

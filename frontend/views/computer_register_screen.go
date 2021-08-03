@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"mnimidamonbackend/client/authorization"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
 	_ "mnimidamonbackend/frontend/global"
@@ -27,6 +28,7 @@ func init() {
 	}
 
 	toolbarLabel := widget.NewLabelWithStyle("computer registration", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	errorLabel := fragments.NewFlashingLabel()
 
 	toolbar := widget.NewToolbar(
 		fragments.NewToolbarLabel(toolbarLabel),
@@ -43,22 +45,37 @@ func init() {
 		OnSubmit: func() {
 			computerName := computerNameEntry.Text
 
-			// TODO HTTP CALL ON COMPUTER REGISTER.
+			go func() {
 
-			//
+				resp, err := mnimidamon.Authorization.RegisterComputer(&authorization.RegisterComputerParams{
+					Body:       &models.CreateComputerPayload{
+						Name: &computerName,
+					},
+					Context:    apiContext,
+				}, userAuth)
 
-			// Inform about the configuration confirm.
-			events.ConfirmComputerConfig.Trigger(global.ComputerConfig{
-				Computer: models.Computer{
-					ComputerID: 0,
-					Name:       computerName,
-					OwnerID:    0,
-				},
-				Key: "",
-			})
+				if err != nil {
+					if respErr, ok := err.(*authorization.RegisterComputerBadRequest); ok {
+						errorLabel.ShowMessage(respErr.Payload.Code)
+					} else {
+						errorLabel.ShowMessage(err.Error())
+					}
+					return
+				}
 
-			// Registration is complete, navigate to the main window.
-			events.RequestMainView.Trigger()
+				// Inform about the configuration confirm.
+				events.ConfirmComputerConfig.Trigger(global.ComputerConfig{
+					Computer: models.Computer{
+						ComputerID: resp.Payload.Computer.ComputerID,
+						Name:       resp.Payload.Computer.Name,
+						OwnerID:    resp.Payload.Computer.OwnerID,
+					},
+					Key: resp.Payload.CompKey,
+				})
+
+				// Registration is complete, navigate to the main window.
+				events.RequestMainView.Trigger()
+			}()
 
 		},
 		OnCancel: func() {
@@ -71,5 +88,6 @@ func init() {
 	ComputerRegisterScreen = container.NewVBox(
 		toolbar,
 		form,
+		container.NewCenter(errorLabel),
 	)
 }

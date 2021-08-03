@@ -6,6 +6,9 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
+	"mnimidamonbackend/client"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
 	_ "mnimidamonbackend/frontend/global"
@@ -86,6 +89,12 @@ func init() {
 				Host:       host,
 				Port:       port,
 			})
+
+			// Make the mnimidamon http client.
+			transport := httptransport.New(host + ":" + portEntry.Text, client.DefaultBasePath, nil)
+			mnimidamon = client.New(transport, strfmt.Default)
+
+			global.Log("base http client created")
 
 			// Request Navigation to the Login View.
 			events.RequestLoginView.Trigger()
