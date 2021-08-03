@@ -2,6 +2,7 @@ package services
 
 import (
 	"fyne.io/fyne/v2"
+	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/models"
 )
@@ -24,20 +25,35 @@ var (
 )
 
 // Global Configuration Store for accessing, deleting and saving our configurations.
-var ConfigurationStore configurationStore
+var ConfigurationStore *configurationStore
 
 func init() {
 	// Get the application preferences and save it.
-	ConfigurationStore = configurationStore{
+	ConfigurationStore = &configurationStore{
 		preferences: global.App.Preferences(),
 	}
+
+	// Listen for config so we can save it.
+	events.ConfirmConfig.Register(ConfigurationStore)
+	// Listen for config restart co we can save it.
+	events.RestartConfiguration.Register(ConfigurationStore)
 }
 
 type configurationStore struct {
 	preferences fyne.Preferences
 }
 
-func (i *configurationStore) Delete() {
+func (i *configurationStore) HandleRestartConfigurationHandler() {
+	global.Log("configuration deleted")
+	i.DeleteConfig()
+}
+
+func (i *configurationStore) HandleConfirmConfig(config global.Config) {
+	global.Log("configuration saved")
+	i.SaveConfig(&config)
+}
+
+func (i *configurationStore) DeleteConfig() {
 	i.preferences.SetBool(isStoredField, false)
 }
 
@@ -55,6 +71,7 @@ func (i *configurationStore) SaveConfig(c *global.Config) {
 	i.preferences.SetString(serverHostField, c.Server.Host)
 	i.preferences.SetInt(serverPortField, c.Server.Port)
 	i.preferences.SetString(folderPathKey, c.Server.FolderPath)
+	i.preferences.SetString(usernameField, c.User.Username)
 	i.preferences.SetInt(userId, int(c.User.UserID))
 	i.preferences.SetInt(computerId, int(c.Computer.ComputerID))
 }

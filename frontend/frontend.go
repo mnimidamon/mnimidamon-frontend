@@ -33,7 +33,7 @@ func (ac *applicationContainer) Run() {
 	if !services.ConfigurationStore.IsStored() {
 		ac.SetMainContent(views.StartScreen)
 	} else {
-		ac.SetMainContent(views.LoginScreen)
+		ac.SetMainContent(views.MainScreen.Container)
 	}
 
 	// Else display main screen.
@@ -64,7 +64,7 @@ func (ac *applicationContainer) HandleRequestComputerRegisterView() {
 }
 
 func (ac *applicationContainer) HandleRequestMainView() {
-	ac.SetMainContent(views.MainScreen)
+	ac.SetMainContent(views.MainScreen.Container)
 }
 
 func (ac *applicationContainer) OpenDebugWindowView() {
