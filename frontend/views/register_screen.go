@@ -82,7 +82,7 @@ func init() {
 
 				if err != nil {
 					if respError, ok := err.(*authorization.RegisterUserBadRequest); ok {
-						errorLabel.ShowMessage(respError.Payload.Code)
+						errorLabel.ShowMessage(respError.Payload.Message)
 					} else {
 						errorLabel.ShowMessage(err.Error())
 					}

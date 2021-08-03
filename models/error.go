@@ -18,8 +18,12 @@ import (
 type Error struct {
 
 	// code
-	// Example: CodeOfTheError
-	Code string `json:"code,omitempty"`
+	// Example: 400
+	Code float64 `json:"code,omitempty"`
+
+	// message
+	// Example: ErrExampleString
+	Message string `json:"message,omitempty"`
 }
 
 // Validate validates this error

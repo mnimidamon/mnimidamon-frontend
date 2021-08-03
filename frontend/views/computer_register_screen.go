@@ -56,7 +56,7 @@ func init() {
 
 				if err != nil {
 					if respErr, ok := err.(*authorization.RegisterComputerBadRequest); ok {
-						errorLabel.ShowMessage(respErr.Payload.Code)
+						errorLabel.ShowMessage(respErr.Payload.Message)
 					} else {
 						errorLabel.ShowMessage(err.Error())
 					}
