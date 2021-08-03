@@ -18,13 +18,13 @@ var userAuth = new(userAuthWriter)
 type compAuthWriter struct{ runtime.ClientAuthInfoWriter }
 
 func (c *compAuthWriter) HandleComputerConfirmConfig(config global.ComputerConfig) {
-	c.ClientAuthInfoWriter = httptransport.APIKeyAuth("X-AUTH-KEY", "header", config.Key)
+	c.ClientAuthInfoWriter = httptransport.APIKeyAuth("X-COMP-KEY", "header", config.Key)
 }
 
 type userAuthWriter struct{ runtime.ClientAuthInfoWriter }
 
 func (u *userAuthWriter) HandleUserConfirmConfig(config global.UserConfig) {
-	u.ClientAuthInfoWriter = httptransport.APIKeyAuth("X-COMP-KEY", "header", config.Key)
+	u.ClientAuthInfoWriter = httptransport.APIKeyAuth("X-AUTH-KEY", "header", config.Key)
 }
 
 func init() {
