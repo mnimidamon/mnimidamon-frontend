@@ -11,6 +11,7 @@ import (
 	_ "mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/resources"
 	"mnimidamonbackend/frontend/views/fragments"
+	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/models"
 )
 
@@ -47,12 +48,12 @@ func init() {
 
 			go func() {
 
-				resp, err := mnimidamon.Authorization.RegisterComputer(&authorization.RegisterComputerParams{
+				resp, err := server.Mnimidamon.Authorization.RegisterComputer(&authorization.RegisterComputerParams{
 					Body:       &models.CreateComputerPayload{
 						Name: &computerName,
 					},
-					Context:    apiContext,
-				}, userAuth)
+					Context: server.ApiContext,
+				}, server.UserAuth)
 
 				if err != nil {
 					if respErr, ok := err.(*authorization.RegisterComputerBadRequest); ok {

@@ -10,6 +10,7 @@ import (
 	"mnimidamonbackend/frontend/resources"
 	"mnimidamonbackend/frontend/services"
 	"mnimidamonbackend/frontend/views/fragments"
+	_ "mnimidamonbackend/frontend/views/viewmodels"
 )
 
 var MainScreen *mainScreen
@@ -29,7 +30,7 @@ func init() {
 	toolbar := widget.NewToolbar(
 		fragments.NewToolbarLabel(toolbarLabel),
 		widget.NewToolbarSpacer(),
-		widget.NewToolbarAction(resources.RestartAltSvg, func() {
+		widget.NewToolbarAction(resources.LogOutSvg, func() {
 			events.RestartConfiguration.Trigger()
 		}),
 	)
@@ -44,6 +45,8 @@ func init() {
 		Config:           nil,
 		CurrentToolbar:   toolbar,
 		ToolbarBind:      toolbarBind,
+
+		GroupListContent: NewGroupListContent(),
 	}
 
 	// Get the config if it's present.
@@ -56,6 +59,9 @@ func init() {
 
 	// Refresh the UI to the current application state.
 	MainScreen.refresh()
+
+	// Set the current content to groups.
+	MainScreen.SetCurrentContent(MainScreen.GroupListContent.Container)
 }
 
 type mainScreen struct {
@@ -67,8 +73,9 @@ type mainScreen struct {
 	CurrentContent fyne.CanvasObject // CurrentContent inside the ContentContainer.
 
 	ToolbarBind binding.String // Binding for the toolbar label name.
-
 	Config *global.Config
+
+	GroupListContent *groupListContent
 }
 
 func (ms *mainScreen) HandleConfirmConfig(config global.Config) {
@@ -79,6 +86,13 @@ func (ms *mainScreen) HandleConfirmConfig(config global.Config) {
 
 	*ms.Config = config
 	ms.refresh()
+}
+
+// Replaces the current content.
+func (ms *mainScreen) SetCurrentContent(content fyne.CanvasObject) {
+	ms.ContentContainer.Remove(ms.CurrentContent)
+	ms.ContentContainer.Add(content)
+	ms.CurrentContent = content
 }
 
 // Refresh the UI based on the application state.

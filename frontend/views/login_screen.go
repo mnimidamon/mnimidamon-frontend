@@ -12,6 +12,7 @@ import (
 	_ "mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/resources"
 	"mnimidamonbackend/frontend/views/fragments"
+	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/models"
 )
 
@@ -38,7 +39,7 @@ func init() {
 		return nil
 	}
 
-	toolbarLabel := widget.NewLabelWithStyle("mnimidamon login", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	toolbarLabel := widget.NewLabelWithStyle("Mnimidamon login", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 	errorLabel := fragments.NewFlashingLabel()
 
 	toolbar := widget.NewToolbar(
@@ -65,12 +66,12 @@ func init() {
 				// TODO LOADING
 
 				// Call the api.
-				resp, err := mnimidamon.Authorization.LoginUser(&authorization.LoginUserParams{
+				resp, err := server.Mnimidamon.Authorization.LoginUser(&authorization.LoginUserParams{
 					Body: &models.LoginPayload{
 						Password: (*strfmt.Password)(&password),
 						Username: &username,
 					},
-					Context: apiContext,
+					Context: server.ApiContext,
 				})
 
 				if err != nil {

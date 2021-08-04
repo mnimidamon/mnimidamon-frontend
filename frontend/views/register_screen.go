@@ -12,6 +12,7 @@ import (
 	_ "mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/resources"
 	"mnimidamonbackend/frontend/views/fragments"
+	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/models"
 )
 
@@ -72,12 +73,12 @@ func init() {
 				// TODO: LOADING?
 
 				// Call the backend endpoint.
-				resp, err := mnimidamon.Authorization.RegisterUser(&authorization.RegisterUserParams{
+				resp, err := server.Mnimidamon.Authorization.RegisterUser(&authorization.RegisterUserParams{
 					Body: &models.RegisterPayload{
 						Password: (*strfmt.Password)(&password),
 						Username: &username,
 					},
-					Context: apiContext,
+					Context: server.ApiContext,
 				})
 
 				if err != nil {
