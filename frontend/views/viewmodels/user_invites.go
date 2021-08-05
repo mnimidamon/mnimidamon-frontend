@@ -35,7 +35,7 @@ func (vm *userInvitesViewModel) HandleAuthenticated() {
 	vm.GetAllInvites()
 }
 
-func (vm *userInvitesViewModel) RemoveInvite(i *models.Invite) {
+func (vm *userInvitesViewModel) Remove(i *models.Invite) {
 	for j, x := range vm.Models {
 		if x.Group.GroupID == i.Group.GroupID {
 			vm.Models = append(vm.Models[:j], vm.Models[j+1:]...)

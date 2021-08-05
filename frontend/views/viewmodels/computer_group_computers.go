@@ -39,6 +39,10 @@ func (vm *groupComputersViewModel) IsMemberOf(group *models.Group) bool {
 	return false
 }
 
+func (vm *groupComputersViewModel) Add(groupComputer *models.GroupComputer) {
+	vm.Models = append(vm.Models, groupComputer)
+	vm.TriggerUpdateEvent()
+}
 func (vm *groupComputersViewModel) HandleAuthenticated() {
 	vm.GetAllGroupComputers()
 }
@@ -57,6 +61,10 @@ func (vm *groupComputersViewModel) GetAllGroupComputers()()  {
 
 		vm.Models = resp.Payload
 		global.Log("Computer Group Computers %v", vm.Models)
-		events.GroupComputersUpdated.Trigger()
+		vm.TriggerUpdateEvent()
 	}()
+}
+
+func (vm *groupComputersViewModel) TriggerUpdateEvent()()  {
+	events.GroupComputersUpdated.Trigger()
 }

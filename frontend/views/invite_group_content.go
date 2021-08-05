@@ -2,16 +2,20 @@ package views
 
 import (
 	"errors"
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"mnimidamonbackend/client/group"
+	"mnimidamonbackend/client/group_computer"
 	"mnimidamonbackend/client/invite"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/resources"
+	"mnimidamonbackend/frontend/services"
 	"mnimidamonbackend/frontend/views/fragments"
 	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/frontend/views/viewmodels"
@@ -211,8 +215,8 @@ func NewJoinGroupCanvasObject(group *models.Group) fyne.CanvasObject {
 	return container.NewHBox(
 		widget.NewLabel(group.Name),
 		layout.NewSpacer(),
-		widget.NewToolbar(widget.NewToolbarAction(resources.LoginSvg, func() {
-			JoinGroup(group)
+		widget.NewToolbar(widget.NewToolbarAction(resources.ClipboardEditSvg, func() {
+			DialogJoinComputerToGroup(group)
 		})))
 }
 
@@ -220,7 +224,7 @@ func NewEnterGroupCanvasObject(group *models.Group) fyne.CanvasObject {
 	return container.NewHBox(
 		widget.NewLabel(group.Name),
 		layout.NewSpacer(),
-		widget.NewToolbar(widget.NewToolbarAction(resources.SubdirectorySvg, func() {
+		widget.NewToolbar(widget.NewToolbarAction(resources.LoginSvg, func() {
 			EnterGroup(group)
 		})))
 }
@@ -248,8 +252,45 @@ func EnterGroup(group *models.Group) {
 	global.Log("entering group %v", group.GroupID)
 }
 
-func JoinGroup(group *models.Group) {
+func DialogJoinComputerToGroup(group *models.Group) {
+	// Dialog for entering the amount of space.
 	global.Log("join group requested %v", group.GroupID)
+
+	size := binding.NewInt()
+	sizeEntry := widget.NewEntryWithData(binding.IntToString(size))
+	dialog.NewForm(fmt.Sprintf("Join %v with %v", group.Name, services.ConfigurationStore.GetConfig().Computer.Name), "Join", "Cancel",
+		[]*widget.FormItem{
+			widget.NewFormItem("Storage size in Kb", sizeEntry),
+		}, func(b bool) {
+			if b {
+				size, _ := size.Get()
+				JoinComputerToGroup(size, group)
+			}
+		}, global.MainWindow).Show()
+}
+func JoinComputerToGroup(size int, group *models.Group) {
+	go func() {
+		resp, err := server.Mnimidamon.GroupComputer.JoinComputerToGroup(&group_computer.JoinComputerToGroupParams{
+			Body:      	&models.CreateGroupComputerPayload{
+				Size: int64(size),
+			},
+			GroupID:    group.GroupID,
+			Context:    server.ApiContext,
+		}, server.CompAuth)
+
+		// Display the error.
+		if err != nil {
+			if br, ok := err.(*group_computer.JoinComputerToGroupBadRequest); ok {
+				infoDialog(br.Payload.Message)
+				return
+			}
+			infoDialog(err.Error())
+			return
+		}
+
+		// Add the group computers to the view models.
+		viewmodels.GroupComputers.Add(resp.Payload)
+	}()
 }
 
 func AcceptInvite(i *models.Invite) {
@@ -266,8 +307,8 @@ func AcceptInvite(i *models.Invite) {
 		}
 
 		// Add the group and remove the invite.
-		viewmodels.Groups.AddGroup(resp.Payload)
-		viewmodels.Invites.RemoveInvite(i)
+		viewmodels.Groups.Add(resp.Payload)
+		viewmodels.Invites.Remove(i)
 	}()
 }
 
@@ -285,7 +326,7 @@ func DeclineInvite(i *models.Invite) {
 		}
 
 		// Remove the invite.
-		viewmodels.Invites.RemoveInvite(i)
+		viewmodels.Invites.Remove(i)
 	}()
 }
 
@@ -310,6 +351,6 @@ func createNewGroup(name string) {
 		}
 
 		// Add the created group.
-		viewmodels.Groups.AddGroup(resp.Payload)
+		viewmodels.Groups.Add(resp.Payload)
 	}()
 }

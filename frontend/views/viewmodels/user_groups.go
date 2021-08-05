@@ -34,7 +34,7 @@ func (vm *groupsViewModel) HandleAuthenticated() {
 	vm.GetAllGroups()
 }
 
-func (vm *groupsViewModel) AddGroup(group *models.Group) {
+func (vm *groupsViewModel) Add(group *models.Group) {
 	vm.Models = append(vm.Models, group)
 	vm.TriggerUpdateEvent()
 }
