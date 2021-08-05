@@ -1,9 +1,11 @@
 package views
 
 import (
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
@@ -31,7 +33,7 @@ func init() {
 		fragments.NewToolbarObject(toolbarLabel),
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.LogOutSvg, func() {
-			events.RestartConfiguration.Trigger()
+			showLogOutDialog()
 		}),
 	)
 
@@ -106,4 +108,12 @@ func (ms *mainScreen) refreshToolbar() {
 	if ms.Config != nil {
 		_ = ms.ToolbarBind.Set(ms.Config.User.Username + "@" + ms.Config.Computer.Name)
 	}
+}
+
+func showLogOutDialog() {
+	dialog.NewConfirm("Are you sure?", fmt.Sprintf("This will delete the computer %v and its backups.", services.ConfigurationStore.GetConfig().Computer.Name), func(b bool) {
+		if b {
+			events.RestartConfiguration.Trigger()
+		}
+	}, global.MainWindow).Show()
 }
