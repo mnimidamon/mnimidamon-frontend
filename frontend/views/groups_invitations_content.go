@@ -23,7 +23,7 @@ import (
 	"sync"
 )
 
-func NewGroupListContent() *groupInviteListContent {
+func NewGroupAndInvitationsContent() *groupsInvitationsContent {
 
 	// Base toolbar elements.
 	groupLabel := widget.NewLabelWithStyle("groups", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
@@ -31,10 +31,10 @@ func NewGroupListContent() *groupInviteListContent {
 	groupToolbarLabel := fragments.NewToolbarObject(groupLabel)
 	inviteToolbarLabel := fragments.NewToolbarObject(inviteLabel)
 
-	// For reference
-	var gilc *groupInviteListContent
+	// For reference.
+	var gilc *groupsInvitationsContent
 
-	// Group toolbar
+	// Group toolbar.
 	groupToolbar := widget.NewToolbar(groupToolbarLabel,
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.SyncSvg, func() {
@@ -59,7 +59,7 @@ func NewGroupListContent() *groupInviteListContent {
 		widget.NewButtonWithIcon("groups", resources.GroupsSvg, func() {
 			gilc.DisplayGroupsContent()
 		}),
-		widget.NewButtonWithIcon("invites", resources.InboxSvg, func() {
+		widget.NewButtonWithIcon("invites", resources.MailboxUpSvg, func() {
 			gilc.DisplayInvitesContent()
 		}),
 	)
@@ -74,7 +74,7 @@ func NewGroupListContent() *groupInviteListContent {
 	// Border layout, where left is navigation and center content is the right content.
 	mainContainer := container.NewBorder(nil, nil, leftNavigation, nil, rightContent)
 
-	gilc = &groupInviteListContent{
+	gilc = &groupsInvitationsContent{
 		Container:      mainContainer,
 		LeftNavigation: leftNavigation,
 		RightContent:   rightContent,
@@ -103,7 +103,7 @@ func NewGroupListContent() *groupInviteListContent {
 	return gilc
 }
 
-type groupInviteListContent struct {
+type groupsInvitationsContent struct {
 	Container      *fyne.Container // The encapsulating container.
 	LeftNavigation *fyne.Container // Left split content.
 	RightContent   *fyne.Container // Right split content.
@@ -117,19 +117,19 @@ type groupInviteListContent struct {
 	mu sync.Mutex // Lock when rendering UI elements.
 }
 
-func (c *groupInviteListContent) HandleGroupComputersUpdated() {
+func (c *groupsInvitationsContent) HandleGroupComputersUpdated() {
 	c.rerenderGroups()
 }
 
-func (c *groupInviteListContent) HandleGroupsUpdate() {
+func (c *groupsInvitationsContent) HandleGroupsUpdate() {
 	c.rerenderGroups()
 }
 
-func (c *groupInviteListContent) HandleInvitesUpdate() {
+func (c *groupsInvitationsContent) HandleInvitesUpdate() {
 	c.rerenderInvites()
 }
 
-func (c *groupInviteListContent) rerenderInvites() {
+func (c *groupsInvitationsContent) rerenderInvites() {
 	c.mu.Lock()
 
 	global.Log("updating invites list")
@@ -148,7 +148,7 @@ func (c *groupInviteListContent) rerenderInvites() {
 	c.mu.Unlock()
 }
 
-func (c *groupInviteListContent) rerenderGroups() {
+func (c *groupsInvitationsContent) rerenderGroups() {
 	c.mu.Lock()
 	global.Log("updating groups list")
 	c.GroupListContainer.Objects = []fyne.CanvasObject{}
@@ -191,11 +191,11 @@ func (c *groupInviteListContent) rerenderGroups() {
 	c.mu.Unlock()
 }
 
-func (c *groupInviteListContent) DisplayGroupsContent() {
+func (c *groupsInvitationsContent) DisplayGroupsContent() {
 	c.RightContent.Objects = []fyne.CanvasObject{c.GroupRightContent}
 	c.RightContent.Refresh()
 }
-func (c *groupInviteListContent) DisplayInvitesContent() {
+func (c *groupsInvitationsContent) DisplayInvitesContent() {
 	c.RightContent.Objects = []fyne.CanvasObject{c.InviteRightContent}
 	c.RightContent.Refresh()
 }

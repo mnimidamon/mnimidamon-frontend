@@ -49,7 +49,7 @@ func init() {
 		CurrentToolbar:   toolbar,
 		ToolbarBind:      toolbarBind,
 
-		GroupListContent: NewGroupListContent(),
+		GroupListContent: NewGroupAndInvitationsContent(),
 	}
 
 	// Get the config if it's present.
@@ -78,7 +78,7 @@ type mainScreen struct {
 	ToolbarBind binding.String // Binding for the toolbar label name.
 	Config *global.Config
 
-	GroupListContent *groupInviteListContent
+	GroupListContent *groupsInvitationsContent
 }
 
 func (ms *mainScreen) HandleConfirmConfig(config global.Config) {
