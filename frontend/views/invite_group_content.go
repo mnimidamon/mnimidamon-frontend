@@ -18,6 +18,7 @@ import (
 )
 
 func NewGroupListContent() *groupInviteListContent {
+
 	groupLabel := widget.NewLabelWithStyle("groups", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	inviteLabel := widget.NewLabelWithStyle("invites", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	groupToolbarLabel := fragments.NewToolbarObject(groupLabel)
@@ -79,6 +80,11 @@ func NewGroupListContent() *groupInviteListContent {
 
 	events.GroupsUpdated.Register(gilc)
 	events.InvitesUpdated.Register(gilc)
+
+	global.MainWindow.Resize(fyne.Size{
+		Width:  300,
+		Height: 200,
+	})
 
 	return gilc
 }
