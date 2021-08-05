@@ -30,11 +30,52 @@ type ClientOption func(*runtime.ClientOperation)
 
 // ClientService is the interface for Client methods
 type ClientService interface {
+	GetGroupComputersOfComputer(params *GetGroupComputersOfComputerParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetGroupComputersOfComputerOK, error)
+
 	JoinComputerToGroup(params *JoinComputerToGroupParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JoinComputerToGroupOK, error)
 
 	LeaveComputerFromGroup(params *LeaveComputerFromGroupParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*LeaveComputerFromGroupNoContent, error)
 
 	SetTransport(transport runtime.ClientTransport)
+}
+
+/*
+  GetGroupComputersOfComputer gets group computers of computer
+*/
+func (a *Client) GetGroupComputersOfComputer(params *GetGroupComputersOfComputerParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetGroupComputersOfComputerOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetGroupComputersOfComputerParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "getGroupComputersOfComputer",
+		Method:             "GET",
+		PathPattern:        "/users/current/computers/{computer_id}/groups",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &GetGroupComputersOfComputerReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*GetGroupComputersOfComputerOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for getGroupComputersOfComputer: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*

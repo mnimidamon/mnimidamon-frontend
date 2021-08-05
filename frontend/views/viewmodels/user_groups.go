@@ -24,26 +24,25 @@ func init() {
 
 	// Register on confirm config.
 	events.Authenticated.Register(Groups)
-	events.GroupCreated.Register(Groups)
 }
 
 type groupsViewModel struct {
 	Models []*models.Group
 }
 
-func (vm *groupsViewModel) HandleGroupCreated(group models.Group) {
-	vm.Models = append(vm.Models, &group)
-	events.GroupsUpdated.Trigger()
-}
-
 func (vm *groupsViewModel) HandleAuthenticated() {
 	vm.GetAllGroups()
+}
+
+func (vm *groupsViewModel) AddGroup(group *models.Group) {
+	vm.Models = append(vm.Models, group)
+	vm.TriggerUpdateEvent()
 }
 
 func (vm *groupsViewModel) GetAllGroups() {
 	go func() {
 		resp, err := server.Mnimidamon.CurrentUser.GetCurrentUserGroups(&current_user.GetCurrentUserGroupsParams{
-			Context:    server.ApiContext,
+			Context: server.ApiContext,
 		}, server.CompAuth)
 
 		if err != nil {
@@ -54,6 +53,10 @@ func (vm *groupsViewModel) GetAllGroups() {
 		vm.Models = resp.Payload
 
 		global.Log("Groups %v", vm.Models)
-		events.GroupsUpdated.Trigger()
+		vm.TriggerUpdateEvent()
 	}()
+}
+
+func (vm *groupsViewModel) TriggerUpdateEvent() {
+	events.GroupsUpdated.Trigger()
 }

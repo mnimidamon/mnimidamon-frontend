@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"mnimidamonbackend/client/group"
+	"mnimidamonbackend/client/invite"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/resources"
@@ -15,28 +16,33 @@ import (
 	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/frontend/views/viewmodels"
 	"mnimidamonbackend/models"
+	"sync"
 )
 
 func NewGroupListContent() *groupInviteListContent {
 
+	// Base toolbar elements.
 	groupLabel := widget.NewLabelWithStyle("groups", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	inviteLabel := widget.NewLabelWithStyle("invites", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	groupToolbarLabel := fragments.NewToolbarObject(groupLabel)
 	inviteToolbarLabel := fragments.NewToolbarObject(inviteLabel)
 
+	// For reference
 	var gilc *groupInviteListContent
+
 	// Group toolbar
 	groupToolbar := widget.NewToolbar(groupToolbarLabel,
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.SyncSvg, func() {
 			viewmodels.Groups.GetAllGroups()
+			viewmodels.GroupComputers.GetAllGroupComputers()
 		}),
 		widget.NewToolbarAction(resources.GroupAddSvg, func() {
 			groupAddDialog()
 		}),
 	)
 
-	// Invite Toolbar
+	// Invite Toolbar.
 	inviteToolbar := widget.NewToolbar(inviteToolbarLabel,
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.SyncSvg, func() {
@@ -76,17 +82,147 @@ func NewGroupListContent() *groupInviteListContent {
 		InviteListContainer: inviteListContainer,
 	}
 
+	// Default content is groups.
 	gilc.DisplayGroupsContent()
 
+	// Register listeners.
 	events.GroupsUpdated.Register(gilc)
 	events.InvitesUpdated.Register(gilc)
+	events.GroupComputersUpdated.Register(gilc)
 
+	// Resize it to look somewhat better.
 	global.MainWindow.Resize(fyne.Size{
 		Width:  350,
 		Height: 220,
 	})
 
 	return gilc
+}
+
+type groupInviteListContent struct {
+	Container      *fyne.Container // The encapsulating container.
+	LeftNavigation *fyne.Container // Left split content.
+	RightContent   *fyne.Container // Right split content.
+
+	GroupRightContent  *fyne.Container // Content displayed upon Invite navigation.
+	InviteRightContent *fyne.Container // Content displayed upon Group navigation.
+
+	GroupListContainer  *fyne.Container // Containing the group list.
+	InviteListContainer *fyne.Container // Containing the invite group list.
+
+	mu sync.Mutex // Lock when rendering UI elements.
+}
+
+func (c *groupInviteListContent) HandleGroupComputersUpdated() {
+	c.rerenderGroups()
+}
+
+func (c *groupInviteListContent) HandleGroupsUpdate() {
+	c.rerenderGroups()
+}
+
+func (c *groupInviteListContent) HandleInvitesUpdate() {
+	c.rerenderInvites()
+}
+
+func (c *groupInviteListContent) rerenderInvites() {
+	c.mu.Lock()
+
+	global.Log("updating invites list")
+	c.InviteListContainer.Objects = []fyne.CanvasObject{}
+
+	if len(viewmodels.Invites.Models) == 0 {
+		c.InviteListContainer.Add(widget.NewLabel("You have no pending invites"))
+		c.mu.Unlock()
+		return
+	}
+
+	for _, i := range viewmodels.Invites.Models {
+		c.InviteListContainer.Add(NewInviteCanvasObject(i))
+	}
+
+	c.mu.Unlock()
+}
+
+func (c *groupInviteListContent) rerenderGroups() {
+	c.mu.Lock()
+	global.Log("updating groups list")
+	c.GroupListContainer.Objects = []fyne.CanvasObject{}
+
+	// If there are no groups.
+	if len(viewmodels.Groups.Models) == 0 {
+		c.GroupListContainer.Add(widget.NewLabel("Create a group or accept an invite"))
+		c.mu.Unlock()
+		return
+	}
+
+	// If there are groups, sort them by whom the computer is member.
+	var isMember []*models.Group
+	var isNotMember []*models.Group
+	for _, g := range viewmodels.Groups.Models {
+		if viewmodels.GroupComputers.IsMemberOf(g) {
+			isMember = append(isMember, g)
+		} else {
+			isNotMember = append(isNotMember, g)
+		}
+	}
+
+	for _, g := range isMember {
+		c.GroupListContainer.Add(NewEnterGroupCanvasObject(g))
+	}
+
+	if len(isNotMember) > 0 && len(isMember) > 0{
+		separator := container.NewHBox(
+			layout.NewSpacer(),
+			widget.NewLabelWithStyle("· · ·", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+			layout.NewSpacer(),
+		)
+		c.GroupListContainer.Add(separator)
+	}
+
+	for _, g := range isNotMember {
+		c.GroupListContainer.Add(NewJoinGroupCanvasObject(g))
+	}
+
+	c.mu.Unlock()
+}
+
+func (c *groupInviteListContent) DisplayGroupsContent() {
+	c.RightContent.Objects = []fyne.CanvasObject{c.GroupRightContent}
+	c.RightContent.Refresh()
+}
+func (c *groupInviteListContent) DisplayInvitesContent() {
+	c.RightContent.Objects = []fyne.CanvasObject{c.InviteRightContent}
+	c.RightContent.Refresh()
+}
+
+func NewInviteCanvasObject(invite *models.Invite) fyne.CanvasObject {
+	return container.NewHBox(
+		widget.NewLabel(invite.Group.Name+" @ "+invite.Date.String()),
+		layout.NewSpacer(),
+		widget.NewToolbar(widget.NewToolbarAction(resources.TrashDeleteSvg, func() {
+			DeclineInvite(invite)
+		}), widget.NewToolbarAction(resources.DoneCheckSvg, func() {
+			AcceptInvite(invite)
+		})))
+}
+
+func NewJoinGroupCanvasObject(group *models.Group) fyne.CanvasObject {
+	return container.NewHBox(
+		widget.NewLabel(group.Name),
+		layout.NewSpacer(),
+		widget.NewToolbar(widget.NewToolbarAction(resources.LoginSvg, func() {
+			JoinGroup(group)
+		})))
+}
+
+func NewEnterGroupCanvasObject(group *models.Group) fyne.CanvasObject {
+	return container.NewHBox(
+		widget.NewLabel(group.Name),
+		layout.NewSpacer(),
+		widget.NewToolbar(widget.NewToolbarAction(resources.SubdirectorySvg, func() {
+			EnterGroup(group)
+		})))
 }
 
 func groupAddDialog() {
@@ -106,6 +242,51 @@ func groupAddDialog() {
 				createNewGroup(nameEntry.Text)
 			}
 		}, global.MainWindow).Show()
+}
+
+func EnterGroup(group *models.Group) {
+	global.Log("entering group %v", group.GroupID)
+}
+
+func JoinGroup(group *models.Group) {
+	global.Log("join group requested %v", group.GroupID)
+}
+
+func AcceptInvite(i *models.Invite) {
+	// Accept the invite and add the group to the group view model.
+	go func() {
+		resp, err := server.Mnimidamon.Invite.AcceptCurrentUserInvite(&invite.AcceptCurrentUserInviteParams{
+			GroupID:    i.Group.GroupID,
+			Context:    server.ApiContext,
+		}, server.CompAuth)
+
+		if err != nil {
+			infoDialog(err.Error())
+			return
+		}
+
+		// Add the group and remove the invite.
+		viewmodels.Groups.AddGroup(resp.Payload)
+		viewmodels.Invites.RemoveInvite(i)
+	}()
+}
+
+func DeclineInvite(i *models.Invite) {
+	// Decline the invite and remove it from the invite view model.
+	go func() {
+		_, err := server.Mnimidamon.Invite.DeclineCurrentUserInvite(&invite.DeclineCurrentUserInviteParams{
+			GroupID:    i.Group.GroupID,
+			Context:    server.ApiContext,
+		}, server.CompAuth)
+
+		if err != nil {
+			infoDialog(err.Error())
+			return
+		}
+
+		// Remove the invite.
+		viewmodels.Invites.RemoveInvite(i)
+	}()
 }
 
 func infoDialog(msg string) {
@@ -128,91 +309,7 @@ func createNewGroup(name string) {
 			return
 		}
 
-		events.GroupCreated.Trigger(*resp.Payload)
+		// Add the created group.
+		viewmodels.Groups.AddGroup(resp.Payload)
 	}()
-}
-
-type groupInviteListContent struct {
-	Container      *fyne.Container // The encapsulating container.
-	LeftNavigation *fyne.Container // Left split content.
-	RightContent   *fyne.Container // Right split content.
-
-	GroupRightContent  *fyne.Container // Content displayed upon Invite navigation.
-	InviteRightContent *fyne.Container // Content displayed upon Group navigation.
-
-	GroupListContainer  *fyne.Container // Containing the group list.
-	InviteListContainer *fyne.Container // Containing the invite group list.
-}
-
-func (c *groupInviteListContent) HandleGroupsUpdate() {
-	global.Log("updating groups list")
-	c.GroupListContainer.Objects = []fyne.CanvasObject{}
-
-	if len(viewmodels.Groups.Models) == 0 {
-		c.GroupListContainer.Add(widget.NewLabel("Create a group or accept an invite"))
-		return
-	}
-
-	for _, g := range viewmodels.Groups.Models {
-		c.GroupListContainer.Add(NewGroupCanvasObject(g))
-	}
-
-	c.GroupListContainer.Refresh()
-}
-
-func (c *groupInviteListContent) HandleInvitesUpdate() {
-	global.Log("updating invites list")
-	c.InviteListContainer.Objects = []fyne.CanvasObject{}
-
-	if len(viewmodels.Invites.Models) == 0 {
-		c.InviteListContainer.Add(widget.NewLabel("You have no pending invites"))
-		return
-	}
-
-	for _, i := range viewmodels.Invites.Models {
-		c.InviteListContainer.Add(NewInviteCanvasObject(i))
-	}
-
-	c.InviteRightContent.Refresh()
-}
-
-func NewInviteCanvasObject(invite *models.Invite) fyne.CanvasObject {
-	return container.NewHBox(
-		widget.NewLabel(invite.Group.Name+" @ "+invite.Date.String()),
-		layout.NewSpacer(),
-		widget.NewToolbar(widget.NewToolbarAction(resources.TrashDeleteSvg, func() {
-			DeclineInvite(invite)
-		}), widget.NewToolbarAction(resources.DoneCheckSvg, func() {
-			AcceptInvite(invite)
-		})))
-}
-
-func NewGroupCanvasObject(group *models.Group) fyne.CanvasObject {
-	return container.NewHBox(
-		widget.NewLabel(group.Name),
-		layout.NewSpacer(),
-		widget.NewToolbar(widget.NewToolbarAction(resources.SubdirectorySvg, func() {
-			EnterGroup(group)
-		})))
-}
-
-func EnterGroup(group *models.Group) {
-	global.Log("entering group %v", group.GroupID)
-}
-
-func AcceptInvite(invite *models.Invite) {
-	global.Log("accept invite to group %v", invite.Group.GroupID)
-}
-
-func DeclineInvite(invite *models.Invite) {
-	global.Log("decline invite to group %v", invite.Group.GroupID)
-}
-
-func (c *groupInviteListContent) DisplayGroupsContent() {
-	c.RightContent.Objects = []fyne.CanvasObject{c.GroupRightContent}
-	c.RightContent.Refresh()
-}
-func (c *groupInviteListContent) DisplayInvitesContent() {
-	c.RightContent.Objects = []fyne.CanvasObject{c.InviteRightContent}
-	c.RightContent.Refresh()
 }

@@ -35,6 +35,16 @@ func (vm *userInvitesViewModel) HandleAuthenticated() {
 	vm.GetAllInvites()
 }
 
+func (vm *userInvitesViewModel) RemoveInvite(i *models.Invite) {
+	for j, x := range vm.Models {
+		if x.Group.GroupID == i.Group.GroupID {
+			vm.Models = append(vm.Models[:j], vm.Models[j+1:]...)
+		}
+	}
+	
+	vm.TriggerUpdateEvent()
+}
+
 func (vm *userInvitesViewModel) GetAllInvites()  {
 	go func() {
 		resp, err := server.Mnimidamon.CurrentUser.GetCurrentUserInvites(&current_user.GetCurrentUserInvitesParams{
@@ -49,6 +59,10 @@ func (vm *userInvitesViewModel) GetAllInvites()  {
 		vm.Models = resp.Payload
 
 		global.Log("Invites %v", vm.Models)
-		events.InvitesUpdated.Trigger()
+		vm.TriggerUpdateEvent()
 	}()
+}
+
+func (vm *userInvitesViewModel) TriggerUpdateEvent() {
+	events.InvitesUpdated.Trigger()
 }
