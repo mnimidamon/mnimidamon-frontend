@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"mnimidamonbackend/client/group"
 	"mnimidamonbackend/frontend/events"
@@ -67,8 +68,8 @@ func NewGroupListContent() *groupInviteListContent {
 		LeftNavigation: leftNavigation,
 		RightContent:   rightContent,
 
-		GroupRightContent:  container.NewBorder(groupToolbar, nil, nil ,nil , container.NewVScroll(groupListContainer)),
-		InviteRightContent: container.NewBorder(inviteToolbar, nil, nil, nil,  container.NewVScroll(inviteListContainer)),
+		GroupRightContent:  container.NewBorder(groupToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(groupListContainer))),
+		InviteRightContent: container.NewBorder(inviteToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(inviteListContainer))),
 
 		GroupListContainer:  groupListContainer,
 		InviteListContainer: inviteListContainer,
@@ -126,8 +127,8 @@ func createNewGroup(name string) error {
 }
 
 type groupInviteListContent struct {
-	Container      *fyne.Container      // The encapsulating container.
-	LeftNavigation *fyne.Container      // Left split content.
+	Container      *fyne.Container // The encapsulating container.
+	LeftNavigation *fyne.Container // Left split content.
 	RightContent   *fyne.Container // Right split content.
 
 	GroupRightContent  *fyne.Container // Content displayed upon Invite navigation.
@@ -147,7 +148,7 @@ func (c *groupInviteListContent) HandleGroupsUpdate() {
 	}
 
 	for _, g := range viewmodels.Groups.Models {
-		c.GroupListContainer.Add(widget.NewLabel(g.Name))
+		c.GroupListContainer.Add(NewGroupCanvasObject(g))
 	}
 
 	c.GroupListContainer.Refresh()
@@ -163,10 +164,42 @@ func (c *groupInviteListContent) HandleInvitesUpdate() {
 	}
 
 	for _, i := range viewmodels.Invites.Models {
-		c.InviteListContainer.Add(widget.NewLabel(i.User.Username + " @ " + i.Date.String()))
+		c.InviteListContainer.Add(NewInviteCanvasObject(i))
 	}
 
 	c.InviteRightContent.Refresh()
+}
+
+func NewInviteCanvasObject(invite *models.Invite) fyne.CanvasObject {
+	return container.NewHBox(
+		widget.NewLabel(invite.Group.Name+" @ "+invite.Date.String()),
+		layout.NewSpacer(),
+		widget.NewToolbar(widget.NewToolbarAction(resources.TrashDeleteSvg, func() {
+			DeclineInvite(invite)
+		}), widget.NewToolbarAction(resources.DoneCheckSvg, func() {
+			AcceptInvite(invite)
+		})))
+}
+
+func NewGroupCanvasObject(group *models.Group) fyne.CanvasObject {
+	return container.NewHBox(
+		widget.NewLabel(group.Name),
+		layout.NewSpacer(),
+		widget.NewToolbar(widget.NewToolbarAction(resources.SubdirectorySvg, func() {
+			EnterGroup(group)
+		})))
+}
+
+func EnterGroup(group *models.Group) {
+	global.Log("entering group %v", group.GroupID)
+}
+
+func AcceptInvite(invite *models.Invite) {
+	global.Log("accept invite to group %v", invite.Group.GroupID)
+}
+
+func DeclineInvite(invite *models.Invite) {
+	global.Log("decline invite to group %v", invite.Group.GroupID)
 }
 
 func (c *groupInviteListContent) DisplayGroupsContent() {
