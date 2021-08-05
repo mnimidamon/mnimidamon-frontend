@@ -6,7 +6,6 @@ import (
 	"mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/services"
 	"mnimidamonbackend/frontend/views"
-	"time"
 )
 
 type ApplicationEntryPoint interface {
@@ -21,10 +20,12 @@ type applicationContainer struct {
 
 func (ac *applicationContainer) Run() {
 	// Open the debug window.
+	/*
 	go func() {
 		time.Sleep(time.Second)
 		ac.OpenDebugWindowView()
 	}()
+	*/
 
 	// Get the first window that we have to show.
 	// If the configuration has not been stored yet then initialize the setup.
