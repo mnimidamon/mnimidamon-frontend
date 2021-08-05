@@ -45,6 +45,7 @@ func (c *compAuthWriter) HandleConfirmConfig(config global.Config) {
 		}
 		return r.SetHeaderParam("X-AUTH-KEY", config.User.Key)
 	})
+	events.Authenticated.Trigger()
 }
 
 type userAuthWriter struct{ runtime.ClientAuthInfoWriter }

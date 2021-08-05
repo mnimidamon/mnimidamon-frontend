@@ -15,7 +15,7 @@ func init() {
 	App = app.NewWithID("frontend.mnimidamon.marmiha.com")
 	App.SetIcon(resources.MnimidamonFrontendIconPng)
 
-	MainWindow = App.NewWindow(" ")
+	MainWindow = App.NewWindow("mnimidamon")
 
 	Log("Mnimidamon client initialized with id %v", App.UniqueID())
 }

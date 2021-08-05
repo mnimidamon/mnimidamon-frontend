@@ -75,7 +75,7 @@ type mainScreen struct {
 	ToolbarBind binding.String // Binding for the toolbar label name.
 	Config *global.Config
 
-	GroupListContent *groupListContent
+	GroupListContent *groupInviteListContent
 }
 
 func (ms *mainScreen) HandleConfirmConfig(config global.Config) {

@@ -23,7 +23,7 @@ func init() {
 	}
 
 	// Register on confirm config.
-	events.ConfirmConfig.Register(Groups)
+	events.Authenticated.Register(Groups)
 	events.GroupCreated.Register(Groups)
 }
 
@@ -36,7 +36,7 @@ func (vm *groupsViewModel) HandleGroupCreated(group models.Group) {
 	events.GroupsUpdated.Trigger()
 }
 
-func (vm *groupsViewModel) HandleConfirmConfig(_ global.Config) {
+func (vm *groupsViewModel) HandleAuthenticated() {
 	vm.GetAllGroups()
 }
 
@@ -53,7 +53,7 @@ func (vm *groupsViewModel) GetAllGroups() {
 
 		vm.Models = resp.Payload
 
-		global.Log("%v", vm.Models)
+		global.Log("Groups %v", vm.Models)
 		events.GroupsUpdated.Trigger()
 	}()
 }
