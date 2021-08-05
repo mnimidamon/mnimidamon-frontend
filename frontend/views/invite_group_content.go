@@ -19,10 +19,11 @@ import (
 func NewGroupListContent() *groupInviteListContent {
 	groupLabel := widget.NewLabelWithStyle("groups", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	inviteLabel := widget.NewLabelWithStyle("invites", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	groupToolbarLabel := fragments.NewToolbarLabel(groupLabel)
-	inviteToolbarLabel := fragments.NewToolbarLabel(inviteLabel)
+	groupToolbarLabel := fragments.NewToolbarObject(groupLabel)
+	inviteToolbarLabel := fragments.NewToolbarObject(inviteLabel)
 
 	var gilc *groupInviteListContent
+	// Group toolbar
 	groupToolbar := widget.NewToolbar(groupToolbarLabel,
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.SyncSvg, func() {
@@ -33,6 +34,7 @@ func NewGroupListContent() *groupInviteListContent {
 		}),
 	)
 
+	// Invite Toolbar
 	inviteToolbar := widget.NewToolbar(inviteToolbarLabel,
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.SyncSvg, func() {
@@ -41,30 +43,32 @@ func NewGroupListContent() *groupInviteListContent {
 	)
 
 	// Left navigation.
-	leftNavigation := container.NewMax(container.NewVBox(
+	leftNavigation := container.NewVBox(
 		widget.NewButtonWithIcon("groups", resources.GroupsSvg, func() {
 			gilc.DisplayGroupsContent()
 		}),
 		widget.NewButtonWithIcon("invites", resources.InboxSvg, func() {
 			gilc.DisplayInvitesContent()
 		}),
-	))
+	)
 
-	// Right list containers.
+	// Right list content.
 	groupListContainer := container.NewVBox(widget.NewLabel("loading..."))
 	inviteListContainer := container.NewVBox(widget.NewLabel("loading..."))
 
-	rightContent := container.NewVScroll(container.NewVBox())
+	// The center content.
+	rightContent := container.NewMax()
 
-	mainContainer := container.NewMax(container.NewHSplit(leftNavigation, container.NewMax(rightContent)))
+	// Border layout, where left is navigation and center content is the right content.
+	mainContainer := container.NewBorder(nil, nil, leftNavigation, nil, rightContent)
 
 	gilc = &groupInviteListContent{
 		Container:      mainContainer,
 		LeftNavigation: leftNavigation,
 		RightContent:   rightContent,
 
-		GroupRightContent:  container.NewVBox(groupToolbar, container.NewVScroll(groupListContainer)),
-		InviteRightContent: container.NewVBox(inviteToolbar, container.NewVScroll(inviteListContainer)),
+		GroupRightContent:  container.NewBorder(groupToolbar, nil, nil ,nil , container.NewVScroll(groupListContainer)),
+		InviteRightContent: container.NewBorder(inviteToolbar, nil, nil, nil,  container.NewVScroll(inviteListContainer)),
 
 		GroupListContainer:  groupListContainer,
 		InviteListContainer: inviteListContainer,
@@ -122,9 +126,9 @@ func createNewGroup(name string) error {
 }
 
 type groupInviteListContent struct {
-	Container      *fyne.Container   // The encapsulating container.
-	LeftNavigation *fyne.Container   // Left split content.
-	RightContent   *container.Scroll // Right split content.
+	Container      *fyne.Container      // The encapsulating container.
+	LeftNavigation *fyne.Container      // Left split content.
+	RightContent   *fyne.Container // Right split content.
 
 	GroupRightContent  *fyne.Container // Content displayed upon Invite navigation.
 	InviteRightContent *fyne.Container // Content displayed upon Group navigation.
@@ -141,7 +145,6 @@ func (c *groupInviteListContent) HandleGroupsUpdate() {
 		c.GroupListContainer.Add(widget.NewLabel("Create a group or accept an invite"))
 		return
 	}
-
 
 	for _, g := range viewmodels.Groups.Models {
 		c.GroupListContainer.Add(widget.NewLabel(g.Name))
@@ -167,10 +170,10 @@ func (c *groupInviteListContent) HandleInvitesUpdate() {
 }
 
 func (c *groupInviteListContent) DisplayGroupsContent() {
-	c.RightContent.Content = c.GroupRightContent
+	c.RightContent.Objects = []fyne.CanvasObject{c.GroupRightContent}
 	c.RightContent.Refresh()
 }
 func (c *groupInviteListContent) DisplayInvitesContent() {
-	c.RightContent.Content = c.InviteRightContent
+	c.RightContent.Objects = []fyne.CanvasObject{c.InviteRightContent}
 	c.RightContent.Refresh()
 }

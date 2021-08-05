@@ -43,7 +43,7 @@ func init() {
 	errorLabel := fragments.NewFlashingLabel()
 
 	toolbar := widget.NewToolbar(
-		fragments.NewToolbarLabel(toolbarLabel),
+		fragments.NewToolbarObject(toolbarLabel),
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.RestartAltSvg, func() {
 			events.RestartConfiguration.Trigger()

@@ -6,13 +6,13 @@ import (
 )
 
 type toolbarLabel struct {
-	*widget.Label
+	fyne.CanvasObject
 }
 
 func (t toolbarLabel) ToolbarObject() fyne.CanvasObject {
-	return t.Label
+	return t.CanvasObject
 }
 
-func NewToolbarLabel(label *widget.Label) widget.ToolbarItem {
-	return &toolbarLabel{label}
+func NewToolbarObject(obj fyne.CanvasObject) widget.ToolbarItem {
+	return &toolbarLabel{obj}
 }

@@ -18,7 +18,7 @@ var MainScreen *mainScreen
 func init() {
 	toolbarContainer := container.NewMax()
 	contentContainer := container.NewMax()
-	mainContainer := container.NewVBox(toolbarContainer, contentContainer)
+	mainContainer := container.NewBorder(toolbarContainer, nil, nil, nil, contentContainer)
 
 	toolbarLabel := widget.NewLabelWithStyle("-@-", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 	toolbarBind := binding.NewString()
@@ -28,7 +28,7 @@ func init() {
 	}))
 
 	toolbar := widget.NewToolbar(
-		fragments.NewToolbarLabel(toolbarLabel),
+		fragments.NewToolbarObject(toolbarLabel),
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.LogOutSvg, func() {
 			events.RestartConfiguration.Trigger()
@@ -36,6 +36,7 @@ func init() {
 	)
 
 	toolbarContainer.Add(toolbar)
+
 
 	// Initialize it to zero values.
 	MainScreen = &mainScreen{
