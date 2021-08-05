@@ -82,8 +82,8 @@ func NewGroupListContent() *groupInviteListContent {
 	events.InvitesUpdated.Register(gilc)
 
 	global.MainWindow.Resize(fyne.Size{
-		Width:  300,
-		Height: 200,
+		Width:  350,
+		Height: 220,
 	})
 
 	return gilc
@@ -103,10 +103,7 @@ func groupAddDialog() {
 			widget.NewFormItem("Name", nameEntry),
 		}, func(b bool) {
 			if b {
-				err := createNewGroup(nameEntry.Text)
-				if err != nil {
-					infoDialog(err.Error())
-				}
+				createNewGroup(nameEntry.Text)
 			}
 		}, global.MainWindow).Show()
 }
@@ -115,21 +112,24 @@ func infoDialog(msg string) {
 	dialog.NewInformation("", msg, global.MainWindow).Show()
 }
 
-func createNewGroup(name string) error {
-	resp, err := server.Mnimidamon.Group.CreateGroup(&group.CreateGroupParams{
-		Body:    &models.GroupCreatePayload{Name: &name},
-		Context: server.ApiContext,
-	}, server.CompAuth)
+func createNewGroup(name string) {
+	go func() {
+		resp, err := server.Mnimidamon.Group.CreateGroup(&group.CreateGroupParams{
+			Body:    &models.GroupCreatePayload{Name: &name},
+			Context: server.ApiContext,
+		}, server.CompAuth)
 
-	if err != nil {
-		if br, ok := err.(*group.CreateGroupBadRequest); ok {
-			return errors.New(br.GetPayload().Message)
+		if err != nil {
+			if br, ok := err.(*group.CreateGroupBadRequest); ok {
+				infoDialog(br.GetPayload().Message)
+				return
+			}
+			infoDialog(err.Error())
+			return
 		}
-		return err
-	}
 
-	events.GroupCreated.Trigger(*resp.Payload)
-	return nil
+		events.GroupCreated.Trigger(*resp.Payload)
+	}()
 }
 
 type groupInviteListContent struct {
