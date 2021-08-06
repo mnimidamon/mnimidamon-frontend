@@ -2,60 +2,36 @@ package viewmodels
 
 import (
 	"fyne.io/fyne/v2/dialog"
-	"mnimidamonbackend/client/group_computer"
+	"mnimidamonbackend/client/group"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
-	"mnimidamonbackend/frontend/services"
 	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/models"
 )
 
-var GroupComputers *groupComputersViewModel
+var GroupMembers *groupMembersViewModel
 
 func init() {
-	GroupComputers = &groupComputersViewModel{
-		Models: []*models.GroupComputer{},
+	GroupMembers = &groupMembersViewModel{
+		Models: []*models.User{},
 	}
-	
-	// Register to fetch data upon computer change.
-	events.CurrentComputerUpdated.Register(GroupComputers)
+
+	// Register selected group updates.
+	events.SelectedGroupUpdated.Register(GroupMembers)
 }
 
-type groupComputersViewModel struct {
-	Models []*models.GroupComputer
+type groupMembersViewModel struct {
+	Models []*models.User
 }
 
-func (vm *groupComputersViewModel) IsMemberOf(group *models.Group) bool {
-	for _, gc := range vm.Models {
-		if gc.GroupID == group.GroupID {
-			return true
-		}
-	}
-	return false
+func (vm *groupMembersViewModel) HandleSelectedGroupUpdated() {
+	vm.GetAllMembers()
 }
 
-func (vm *groupComputersViewModel) Find(groupID int64, computerID int64) *models.GroupComputer {
-	for _, gc := range vm.Models {
-		if gc.GroupID == groupID && gc.ComputerID == computerID {
-			return gc
-		}
-	}
-	return nil
-}
-
-func (vm *groupComputersViewModel) Add(groupComputer *models.GroupComputer) {
-	vm.Models = append(vm.Models, groupComputer)
-	vm.TriggerUpdateEvent()
-}
-
-func (vm *groupComputersViewModel) HandleCurrentComputerUpdated() {
-	vm.GetAllGroupComputers()
-}
-
-func (vm *groupComputersViewModel) GetAllGroupComputers()()  {
+func (vm *groupMembersViewModel) GetAllMembers() {
 	go func() {
-		resp, err := server.Mnimidamon.GroupComputer.GetGroupComputersOfComputer(&group_computer.GetGroupComputersOfComputerParams{
-			ComputerID: services.ConfigurationStore.GetConfig().Computer.ComputerID,
+		resp, err := server.Mnimidamon.Group.GetGroupMembers(&group.GetGroupMembersParams{
+			GroupID:    SelectedGroup.Model.GroupID,
 			Context:    server.ApiContext,
 		}, CurrentComputer.Auth)
 
@@ -65,11 +41,12 @@ func (vm *groupComputersViewModel) GetAllGroupComputers()()  {
 		}
 
 		vm.Models = resp.Payload
-		global.Log("Computer Group Computers %v", vm.Models)
+
+		global.Log("members %v", vm.Models)
 		vm.TriggerUpdateEvent()
 	}()
 }
 
-func (vm *groupComputersViewModel) TriggerUpdateEvent()()  {
-	events.GroupComputersUpdated.Trigger()
+func (vm *groupMembersViewModel) TriggerUpdateEvent() {
+	events.GroupMembersUpdated.Trigger()
 }

@@ -16,7 +16,7 @@ func init() {
 		Models: []*models.Group{},
 	}
 
-	// Register on confirm config.
+	// Register current computer updates.
 	events.CurrentComputerUpdated.Register(Groups)
 }
 

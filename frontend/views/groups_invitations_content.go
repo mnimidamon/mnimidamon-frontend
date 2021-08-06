@@ -40,7 +40,7 @@ func NewGroupAndInvitationsContent() *groupsInvitationsContent {
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.SyncSvg, func() {
 			viewmodels.Groups.GetAllGroups()
-			viewmodels.GroupComputers.GetAllGroupComputers()
+			viewmodels.CurrentComputerGroupComputers.GetAllGroupComputers()
 		}),
 		widget.NewToolbarAction(resources.GroupAddSvg, func() {
 			groupAddDialog()
@@ -94,7 +94,7 @@ func NewGroupAndInvitationsContent() *groupsInvitationsContent {
 	// Register listeners.
 	events.GroupsUpdated.Register(gilc)
 	events.InvitesUpdated.Register(gilc)
-	events.GroupComputersUpdated.Register(gilc)
+	events.CurrentComputerGroupComputersUpdated.Register(gilc)
 
 	// Resize it to look somewhat better.
 	global.MainWindow.Resize(fyne.Size{
@@ -169,7 +169,7 @@ func (c *groupsInvitationsContent) rerenderGroups() {
 	var isMember []*models.Group
 	var isNotMember []*models.Group
 	for _, g := range viewmodels.Groups.Models {
-		if viewmodels.GroupComputers.IsMemberOf(g) {
+		if viewmodels.CurrentComputerGroupComputers.IsMemberOf(g) {
 			isMember = append(isMember, g)
 		} else {
 			isNotMember = append(isNotMember, g)
@@ -297,7 +297,7 @@ func JoinComputerToGroup(size int, group *models.Group) {
 		}
 
 		// Add the group computers to the view models.
-		viewmodels.GroupComputers.Add(resp.Payload)
+		viewmodels.CurrentComputerGroupComputers.Add(resp.Payload)
 	}()
 }
 

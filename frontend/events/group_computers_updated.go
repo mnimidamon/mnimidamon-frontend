@@ -5,9 +5,11 @@ var GroupComputersUpdated groupComputersUpdated
 type GroupComputersUpdatedHandler interface {
 	HandleGroupComputersUpdated()
 }
+
 type groupComputersUpdated struct {
 	handlers []GroupComputersUpdatedHandler
 }
+
 
 func (e *groupComputersUpdated) Register(handler GroupComputersUpdatedHandler) {
 	e.handlers = append(e.handlers, handler)
@@ -18,3 +20,4 @@ func (e *groupComputersUpdated) Trigger() {
 		go handler.HandleGroupComputersUpdated()
 	}
 }
+

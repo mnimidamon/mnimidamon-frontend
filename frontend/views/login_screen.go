@@ -63,8 +63,6 @@ func init() {
 			username, password := usernameEntry.Text, passwordEntry.Text
 
 			go func() {
-				// TODO LOADING
-
 				// Call the api.
 				resp, err := server.Mnimidamon.Authorization.LoginUser(&authorization.LoginUserParams{
 					Body: &models.LoginPayload{
