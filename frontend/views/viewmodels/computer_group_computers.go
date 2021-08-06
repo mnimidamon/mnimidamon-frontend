@@ -39,10 +39,20 @@ func (vm *groupComputersViewModel) IsMemberOf(group *models.Group) bool {
 	return false
 }
 
+func (vm *groupComputersViewModel) Find(groupID int64, computerID int64) *models.GroupComputer {
+	for _, gc := range vm.Models {
+		if gc.GroupID == groupID && gc.ComputerID == computerID {
+			return gc
+		}
+	}
+	return nil
+}
+
 func (vm *groupComputersViewModel) Add(groupComputer *models.GroupComputer) {
 	vm.Models = append(vm.Models, groupComputer)
 	vm.TriggerUpdateEvent()
 }
+
 func (vm *groupComputersViewModel) HandleAuthenticated() {
 	vm.GetAllGroupComputers()
 }

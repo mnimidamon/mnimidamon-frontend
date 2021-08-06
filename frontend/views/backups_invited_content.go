@@ -3,8 +3,9 @@ package views
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/resources"
 	"mnimidamonbackend/frontend/views/fragments"
 	"sync"
@@ -20,17 +21,25 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 	// For reference.
 	var bc *backupsInvitedContent
 
-	backupsToolbar := widget.NewToolbar(backupsToolbarLabel,
+	backupsToolbar := widget.NewToolbar(
+		backupsToolbarLabel,
 		widget.NewToolbarSpacer(),
-		widget.NewToolbarAction(theme.CancelIcon(), func() {
+		widget.NewToolbarAction(resources.SyncSvg, func() {
+			// TODO reload backups
+		}),
+		widget.NewToolbarAction(resources.DiskSaveSvg, func() {
 			dialogCreateNewBackup()
 		}),
 	)
 
-	invitesToolbar := widget.NewToolbar(invitesToolbarLabel,
+	invitesToolbar := widget.NewToolbar(
+		invitesToolbarLabel,
 		widget.NewToolbarSpacer(),
-		widget.NewToolbarAction(theme.CancelIcon(), func() {
-
+		widget.NewToolbarAction(resources.SyncSvg, func() {
+			// TODO reload invitees
+		}),
+		widget.NewToolbarAction(resources.EmailPlusSvg, func() {
+			dialogInviteUser()
 		}),
 	)
 
@@ -40,6 +49,10 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 		}),
 		widget.NewButtonWithIcon("invites", resources.EmailMultipleSvg, func() {
 			bc.DisplayInvitesContent()
+		}),
+		layout.NewSpacer(),
+		widget.NewButtonWithIcon("groups", resources.GroupsSvg, func() {
+			events.RequestGroupsContent.Trigger()
 		}),
 	)
 
@@ -66,7 +79,7 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 	bc.DisplayBackupsContent()
 
 	// Register listeners.
-	// TODO, listen for Selected Group
+	// TODO: updated invites, updated backups
 
 	return bc
 }
@@ -97,4 +110,8 @@ func (c *backupsInvitedContent) DisplayBackupsContent() {
 
 func dialogCreateNewBackup() {
 	// TODO Create new backup dialog.
+}
+
+func dialogInviteUser() {
+	// TODO dialog invite user.
 }

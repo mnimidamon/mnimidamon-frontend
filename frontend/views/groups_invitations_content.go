@@ -35,7 +35,8 @@ func NewGroupAndInvitationsContent() *groupsInvitationsContent {
 	var gilc *groupsInvitationsContent
 
 	// Group toolbar.
-	groupToolbar := widget.NewToolbar(groupToolbarLabel,
+	groupToolbar := widget.NewToolbar(
+		groupToolbarLabel,
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.SyncSvg, func() {
 			viewmodels.Groups.GetAllGroups()
@@ -47,7 +48,8 @@ func NewGroupAndInvitationsContent() *groupsInvitationsContent {
 	)
 
 	// Invite Toolbar.
-	inviteToolbar := widget.NewToolbar(inviteToolbarLabel,
+	inviteToolbar := widget.NewToolbar(
+		inviteToolbarLabel,
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.SyncSvg, func() {
 			viewmodels.Invites.GetAllInvites()
@@ -137,6 +139,7 @@ func (c *groupsInvitationsContent) rerenderInvites() {
 
 	if len(viewmodels.Invites.Models) == 0 {
 		c.InviteListContainer.Add(widget.NewLabel("You have no pending invites"))
+		c.InviteListContainer.Refresh()
 		c.mu.Unlock()
 		return
 	}
@@ -145,6 +148,7 @@ func (c *groupsInvitationsContent) rerenderInvites() {
 		c.InviteListContainer.Add(NewInviteCanvasObject(i))
 	}
 
+	c.InviteListContainer.Refresh()
 	c.mu.Unlock()
 }
 
@@ -156,6 +160,7 @@ func (c *groupsInvitationsContent) rerenderGroups() {
 	// If there are no groups.
 	if len(viewmodels.Groups.Models) == 0 {
 		c.GroupListContainer.Add(widget.NewLabel("Create a group or accept an invite"))
+		c.GroupListContainer.Refresh()
 		c.mu.Unlock()
 		return
 	}
@@ -188,6 +193,7 @@ func (c *groupsInvitationsContent) rerenderGroups() {
 		c.GroupListContainer.Add(NewJoinGroupCanvasObject(g))
 	}
 
+	c.GroupListContainer.Refresh()
 	c.mu.Unlock()
 }
 
@@ -249,7 +255,8 @@ func groupAddDialog() {
 }
 
 func EnterGroup(group *models.Group) {
-	global.Log("entering group %v", group.GroupID)
+	// Select the Selected group, this will emit an event which will cause main screen to represent the backups content.
+	viewmodels.SelectedGroup.Select(group)
 }
 
 func DialogJoinComputerToGroup(group *models.Group) {
@@ -268,6 +275,7 @@ func DialogJoinComputerToGroup(group *models.Group) {
 			}
 		}, global.MainWindow).Show()
 }
+
 func JoinComputerToGroup(size int, group *models.Group) {
 	go func() {
 		resp, err := server.Mnimidamon.GroupComputer.JoinComputerToGroup(&group_computer.JoinComputerToGroupParams{

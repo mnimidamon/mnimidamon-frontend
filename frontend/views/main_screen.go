@@ -12,6 +12,7 @@ import (
 	"mnimidamonbackend/frontend/resources"
 	"mnimidamonbackend/frontend/services"
 	"mnimidamonbackend/frontend/views/fragments"
+	"mnimidamonbackend/frontend/views/viewmodels"
 	_ "mnimidamonbackend/frontend/views/viewmodels"
 )
 
@@ -39,7 +40,6 @@ func init() {
 
 	toolbarContainer.Add(toolbar)
 
-
 	// Initialize it to zero values.
 	MainScreen = &mainScreen{
 		Container:        mainContainer,
@@ -49,7 +49,8 @@ func init() {
 		CurrentToolbar:   toolbar,
 		ToolbarBind:      toolbarBind,
 
-		GroupListContent: NewGroupAndInvitationsContent(),
+		GroupsInvitationsContent: NewGroupAndInvitationsContent(),
+		BackupsInvitedContent:    NewBackupsAndInvitedContent(),
 	}
 
 	// Get the config if it's present.
@@ -59,12 +60,14 @@ func init() {
 
 	// Handle config changes.
 	events.ConfirmConfig.Register(MainScreen)
+	events.SelectedGroupUpdated.Register(MainScreen)
+	events.RequestGroupsContent.Register(MainScreen)
 
 	// Refresh the UI to the current application state.
 	MainScreen.refresh()
 
 	// Set the current content to groups.
-	MainScreen.SetCurrentContent(MainScreen.GroupListContent.Container)
+	MainScreen.SetGroupsContent()
 }
 
 type mainScreen struct {
@@ -76,9 +79,28 @@ type mainScreen struct {
 	CurrentContent fyne.CanvasObject // CurrentContent inside the ContentContainer.
 
 	ToolbarBind binding.String // Binding for the toolbar label name.
-	Config *global.Config
+	Config      *global.Config
 
-	GroupListContent *groupsInvitationsContent
+	GroupsInvitationsContent *groupsInvitationsContent // Content that represents the user groups and invitations to groups.
+	BackupsInvitedContent    *backupsInvitedContent    // Content that displays a group backups and the sent invites.
+}
+
+// Navigate to groups content.
+func (ms *mainScreen) HandleRequestGroupsContent() {
+	ms.SetGroupsContent()
+}
+
+// When a new group is selected navigate to the backups content.
+func (ms *mainScreen) HandleSelectedGroupUpdated() {
+	ms.SetBackupsContent()
+}
+
+func (ms *mainScreen) SetBackupsContent() {
+	ms.SetCurrentContent(ms.BackupsInvitedContent.Container)
+}
+
+func (ms *mainScreen) SetGroupsContent() {
+	ms.SetCurrentContent(ms.GroupsInvitationsContent.Container)
 }
 
 func (ms *mainScreen) HandleConfirmConfig(config global.Config) {
@@ -96,6 +118,7 @@ func (ms *mainScreen) SetCurrentContent(content fyne.CanvasObject) {
 	ms.ContentContainer.Remove(ms.CurrentContent)
 	ms.ContentContainer.Add(content)
 	ms.CurrentContent = content
+	ms.refresh()
 }
 
 // Refresh the UI based on the application state.
@@ -106,7 +129,16 @@ func (ms *mainScreen) refresh() {
 // Refresh the Toolbar based on the application state.
 func (ms *mainScreen) refreshToolbar() {
 	if ms.Config != nil {
-		_ = ms.ToolbarBind.Set(ms.Config.User.Username + "@" + ms.Config.Computer.Name)
+		switch ms.CurrentContent {
+		case ms.BackupsInvitedContent.Container:
+			_ = ms.ToolbarBind.Set(ms.Config.Computer.Name + "@" + viewmodels.SelectedGroup.Group.Name)
+			break
+		case ms.GroupsInvitationsContent.Container:
+			_ = ms.ToolbarBind.Set(ms.Config.User.Username + "@" + ms.Config.Computer.Name)
+			break
+		default:
+			_ = ms.ToolbarBind.Set("undefined content")
+		}
 	}
 }
 
