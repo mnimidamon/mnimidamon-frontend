@@ -67,8 +67,8 @@ func NewGroupAndInvitationsContent() *groupsInvitationsContent {
 	)
 
 	// Right list content.
-	groupListContainer := container.NewVBox(widget.NewLabel("loading..."))
-	inviteListContainer := container.NewVBox(widget.NewLabel("loading..."))
+	groupListContainer := container.NewVBox(NewItalicLabel("loading..."))
+	inviteListContainer := container.NewVBox(NewItalicLabel("loading..."))
 
 	// The center content.
 	rightContent := container.NewMax()
@@ -138,7 +138,7 @@ func (c *groupsInvitationsContent) rerenderInvites() {
 	c.InviteListContainer.Objects = []fyne.CanvasObject{}
 
 	if len(viewmodels.Invites.Models) == 0 {
-		c.InviteListContainer.Add(widget.NewLabel("You have no pending invites"))
+		c.InviteListContainer.Add(NewItalicLabel("You have no pending invites"))
 		c.InviteListContainer.Refresh()
 		c.mu.Unlock()
 		return
@@ -159,7 +159,7 @@ func (c *groupsInvitationsContent) rerenderGroups() {
 
 	// If there are no groups.
 	if len(viewmodels.Groups.Models) == 0 {
-		c.GroupListContainer.Add(widget.NewLabel("Create a group or accept an invite"))
+		c.GroupListContainer.Add(NewItalicLabel("Create a group or accept an invite"))
 		c.GroupListContainer.Refresh()
 		c.mu.Unlock()
 		return
@@ -267,11 +267,12 @@ func DialogJoinComputerToGroup(group *models.Group) {
 	sizeEntry := widget.NewEntryWithData(binding.IntToString(size))
 	dialog.NewForm(fmt.Sprintf("Join %v with %v", group.Name, services.ConfigurationStore.GetConfig().Computer.Name), "Join", "Cancel",
 		[]*widget.FormItem{
-			widget.NewFormItem("Storage size in Kb", sizeEntry),
+			widget.NewFormItem("Storage size in MB", sizeEntry),
 		}, func(b bool) {
 			if b {
 				size, _ := size.Get()
-				JoinComputerToGroup(size, group)
+				// Convert to KB
+				JoinComputerToGroup(size * 1024, group)
 			}
 		}, global.MainWindow).Show()
 }

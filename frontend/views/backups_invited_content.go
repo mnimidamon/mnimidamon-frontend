@@ -22,9 +22,11 @@ import (
 func NewBackupsAndInvitedContent() *backupsInvitedContent {
 	backupsLabel := widget.NewLabelWithStyle("backups", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	invitesLabel := widget.NewLabelWithStyle("invited", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	membersLabel := widget.NewLabelWithStyle("members", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 
 	backupsToolbarLabel := fragments.NewToolbarObject(backupsLabel)
 	invitesToolbarLabel := fragments.NewToolbarObject(invitesLabel)
+	membersToolbarLabel := fragments.NewToolbarObject(membersLabel)
 
 	// For reference.
 	var bc *backupsInvitedContent
@@ -38,6 +40,15 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 		widget.NewToolbarAction(resources.DiskSaveSvg, func() {
 			dialogCreateNewBackup()
 		}),
+	)
+
+	membersToolbar := widget.NewToolbar(
+			membersToolbarLabel,
+			widget.NewToolbarSpacer(),
+			widget.NewToolbarAction(resources.SyncSvg, func() {
+				viewmodels.GroupMembers.GetAllMembers()
+				viewmodels.GroupComputers.GetAllGroupComputers()
+			}),
 	)
 
 	invitesToolbar := widget.NewToolbar(
@@ -58,14 +69,18 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 		widget.NewButtonWithIcon("invites", resources.EmailMultipleSvg, func() {
 			bc.DisplayInvitesContent()
 		}),
+		widget.NewButtonWithIcon("members", resources.AccountMultipleSvg, func() {
+			bc.DisplayMembersContent()
+		}),
 		layout.NewSpacer(),
 		widget.NewButtonWithIcon("groups", resources.GroupsSvg, func() {
 			events.RequestGroupsContent.Trigger()
 		}),
 	)
 
-	backupsListContainer := container.NewVBox(widget.NewLabel("loading..."))
-	invitesListContainer := container.NewVBox(widget.NewLabel("loading..."))
+	backupsListContainer := container.NewVBox(NewItalicLabel("loading..."))
+	invitesListContainer := container.NewVBox(NewItalicLabel("loading..."))
+	membersListContainer := container.NewVBox(NewItalicLabel("loading..."))
 
 	rightContent := container.NewMax()
 
@@ -78,17 +93,21 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 
 		BackupRightContent:  container.NewBorder(backupsToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(backupsListContainer))),
 		InvitesRightContent: container.NewBorder(invitesToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(invitesListContainer))),
+		MembersRightContent: container.NewBorder(membersToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(membersListContainer))),
 
 		BackupListContainer:  backupsListContainer,
 		InvitesListContainer: invitesListContainer,
+		MembersListContainer: membersListContainer,
 	}
 
 	// Default content is backups.
 	bc.DisplayBackupsContent()
 
 	// Register listeners.
-	// TODO: updated backups
+	// TODO: updated backups, group computers
 	events.GroupInviteesUpdated.Register(bc)
+	events.GroupMembersUpdated.Register(bc)
+	events.GroupComputersUpdated.Register(bc)
 
 	return bc
 }
@@ -100,11 +119,21 @@ type backupsInvitedContent struct {
 
 	BackupRightContent  *fyne.Container // Content displayed upon Invites navigation.
 	InvitesRightContent *fyne.Container // Content displayed upon Backups navigation.
+	MembersRightContent *fyne.Container // Content displayed upon Members navigation.
 
 	BackupListContainer  *fyne.Container // Containing the backups list.
 	InvitesListContainer *fyne.Container // Containing the invites group list.
+	MembersListContainer *fyne.Container // Containing the group members list.
 
 	mu sync.Mutex // Lock when rendering UI elements.
+}
+
+func (c *backupsInvitedContent) HandleGroupComputersUpdated() {
+	c.rerenderMembers()
+}
+
+func (c *backupsInvitedContent) HandleGroupMembersUpdated() {
+	c.rerenderMembers()
 }
 
 func (c *backupsInvitedContent) HandleGroupInviteesUpdated() {
@@ -127,7 +156,7 @@ func (c *backupsInvitedContent) rerenderInvitees() {
 	c.InvitesListContainer.Objects = []fyne.CanvasObject{}
 
 	if len(viewmodels.GroupInvitees.Models) == 0 {
-		c.InvitesListContainer.Add(widget.NewLabel("There are no pending invites"))
+		c.InvitesListContainer.Add(NewItalicLabel("There are no pending invites"))
 		c.InvitesListContainer.Refresh()
 		c.mu.Unlock()
 		return
@@ -139,6 +168,57 @@ func (c *backupsInvitedContent) rerenderInvitees() {
 
 	c.InvitesListContainer.Refresh()
 	c.mu.Unlock()
+}
+
+func (c *backupsInvitedContent) rerenderMembers() {
+	global.Log("updating members list")
+
+	c.mu.Lock()
+	c.MembersListContainer.Objects = []fyne.CanvasObject{}
+
+	if len(viewmodels.GroupMembers.Models) < 1 {
+		c.MembersListContainer.Add(NewItalicLabel("loading..."))
+		c.MembersListContainer.Refresh()
+		c.mu.Unlock()
+		return
+	}
+
+	if len(viewmodels.GroupMembers.Models) == 1 {
+		c.MembersListContainer.Add(NewItalicLabel("You are the only member of the group"))
+	}
+
+	for _, m := range viewmodels.GroupMembers.Models {
+		c.MembersListContainer.Add(NewMemberCanvasObject(m))
+	}
+
+	c.MembersListContainer.Refresh()
+	c.mu.Unlock()
+}
+
+func (c *backupsInvitedContent) DisplayMembersContent() {
+	c.RightContent.Objects = []fyne.CanvasObject{c.MembersRightContent}
+	c.RightContent.Refresh()
+}
+
+func NewMemberCanvasObject(m *models.User) fyne.CanvasObject {
+	return container.NewVBox(
+		widget.NewLabelWithStyle(m.Username, fyne.TextAlignLeading, fyne.TextStyle{}),
+		NewComputersCanvasObject(m.UserID),
+	)
+}
+
+func NewComputersCanvasObject(userID int64) fyne.CanvasObject {
+	c := container.NewVBox()
+
+	for _, gc := range viewmodels.GroupComputers.GetAllOf(userID) {
+		c.Add(NewGroupComputerCanvasObject(gc))
+	}
+
+	return c
+}
+
+func NewGroupComputerCanvasObject(gc *models.GroupComputer) fyne.CanvasObject {
+	return widget.NewLabel(fmt.Sprintf("   %v  \t%vMB", gc.Computer.Name, gc.StorageSize / 1024))
 }
 
 func NewInviteeCanvasObject(i *models.Invite) fyne.CanvasObject {
@@ -190,4 +270,8 @@ func inviteUserToGroup(name string) {
 		// Add the created invitations to the group invitees.
 		viewmodels.GroupInvitees.Add(resp.Payload)
 	}()
+}
+
+func NewItalicLabel(msg string) *widget.Label{
+	return widget.NewLabelWithStyle(msg, fyne.TextAlignLeading, fyne.TextStyle{Italic: true})
 }

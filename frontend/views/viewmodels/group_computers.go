@@ -2,35 +2,46 @@ package viewmodels
 
 import (
 	"fyne.io/fyne/v2/dialog"
-	"mnimidamonbackend/client/group"
+	"mnimidamonbackend/client/computer"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/models"
 )
 
-var GroupMembers *groupMembersViewModel
+var GroupComputers *groupComputersViewModel
 
 func init() {
-	GroupMembers = &groupMembersViewModel{
-		Models: []*models.User{},
+	GroupComputers = &groupComputersViewModel {
+		Models: []*models.GroupComputer{},
 	}
 
-	// Register selected group updates.
-	events.SelectedGroupUpdated.Register(GroupMembers)
+	events.SelectedGroupUpdated.Register(GroupComputers)
 }
 
-type groupMembersViewModel struct {
-	Models []*models.User
+type groupComputersViewModel struct {
+	Models []*models.GroupComputer
 }
 
-func (vm *groupMembersViewModel) HandleSelectedGroupUpdated() {
-	vm.GetAllMembers()
+func (vm *groupComputersViewModel) HandleSelectedGroupUpdated() {
+	vm.GetAllGroupComputers()
 }
 
-func (vm *groupMembersViewModel) GetAllMembers() {
+func (vm *groupComputersViewModel) GetAllOf(userID int64) []*models.GroupComputer {
+	var gcs []*models.GroupComputer
+
+	for _, gc := range vm.Models {
+		if gc.Computer.OwnerID == userID {
+			gcs = append(gcs, gc)
+		}
+	}
+
+	return gcs
+}
+
+func (vm *groupComputersViewModel) GetAllGroupComputers()  {
 	go func() {
-		resp, err := server.Mnimidamon.Group.GetGroupMembers(&group.GetGroupMembersParams{
+		resp, err := server.Mnimidamon.Computer.GetCurrentUserGroupComputers(&computer.GetCurrentUserGroupComputersParams{
 			GroupID:    SelectedGroup.Model.GroupID,
 			Context:    server.ApiContext,
 		}, CurrentComputer.Auth)
@@ -42,11 +53,11 @@ func (vm *groupMembersViewModel) GetAllMembers() {
 
 		vm.Models = resp.Payload
 
-		global.Log("members %v", vm.Models)
+		global.Log("selected group group computers %v", vm.Models)
 		vm.TriggerUpdateEvent()
 	}()
 }
 
-func (vm *groupMembersViewModel) TriggerUpdateEvent() {
-	events.GroupMembersUpdated.Trigger()
+func (vm *groupComputersViewModel) TriggerUpdateEvent() {
+	events.GroupComputersUpdated.Trigger()
 }

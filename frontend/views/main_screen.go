@@ -105,6 +105,7 @@ func (ms *mainScreen) SetCurrentContent(content fyne.CanvasObject) {
 	ms.ContentContainer.Add(content)
 	ms.CurrentContent = content
 	ms.CurrentContent.Refresh()
+	ms.refresh()
 }
 
 // Refresh the UI based on the application state.
@@ -114,9 +115,13 @@ func (ms *mainScreen) refresh() {
 
 // Refresh the Toolbar based on the application state.
 func (ms *mainScreen) refreshToolbar() {
+	if viewmodels.CurrentUser.Model == nil {
+		return
+	}
+
 	switch ms.CurrentContent {
 	case ms.BackupsInvitedContent.Container:
-		_ = ms.ToolbarBind.Set(viewmodels.CurrentComputer.Model.Name + "@" + viewmodels.SelectedGroup.Model.Name)
+		_ = ms.ToolbarBind.Set(viewmodels.CurrentUser.Model.Username + "@" + viewmodels.CurrentComputer.Model.Name + "~" + viewmodels.SelectedGroup.Model.Name)
 		break
 	case ms.GroupsInvitationsContent.Container:
 		_ = ms.ToolbarBind.Set(viewmodels.CurrentUser.Model.Username + "@" + viewmodels.CurrentComputer.Model.Name)
