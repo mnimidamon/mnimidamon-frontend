@@ -1,13 +1,21 @@
 package views
 
 import (
+	"errors"
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"mnimidamonbackend/client/group"
 	"mnimidamonbackend/frontend/events"
+	"mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/resources"
 	"mnimidamonbackend/frontend/views/fragments"
+	"mnimidamonbackend/frontend/views/server"
+	"mnimidamonbackend/frontend/views/viewmodels"
+	"mnimidamonbackend/models"
 	"sync"
 )
 
@@ -36,7 +44,7 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 		invitesToolbarLabel,
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.SyncSvg, func() {
-			// TODO reload invitees
+			viewmodels.GroupInvitees.GetAllInvitees()
 		}),
 		widget.NewToolbarAction(resources.EmailPlusSvg, func() {
 			dialogInviteUser()
@@ -64,12 +72,12 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 	mainContainer := container.NewBorder(nil, nil, leftNavigation, nil, rightContent)
 
 	bc = &backupsInvitedContent{
-		Container:            mainContainer,
-		LeftNavigation:       leftNavigation,
-		RightContent:         rightContent,
+		Container:      mainContainer,
+		LeftNavigation: leftNavigation,
+		RightContent:   rightContent,
 
-		BackupRightContent:   container.NewBorder(backupsToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(backupsListContainer))),
-		InvitesRightContent:  container.NewBorder(invitesToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(invitesListContainer))),
+		BackupRightContent:  container.NewBorder(backupsToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(backupsListContainer))),
+		InvitesRightContent: container.NewBorder(invitesToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(invitesListContainer))),
 
 		BackupListContainer:  backupsListContainer,
 		InvitesListContainer: invitesListContainer,
@@ -79,7 +87,8 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 	bc.DisplayBackupsContent()
 
 	// Register listeners.
-	// TODO: updated invites, updated backups
+	// TODO: updated backups
+	events.GroupInviteesUpdated.Register(bc)
 
 	return bc
 }
@@ -98,6 +107,10 @@ type backupsInvitedContent struct {
 	mu sync.Mutex // Lock when rendering UI elements.
 }
 
+func (c *backupsInvitedContent) HandleGroupInviteesUpdated() {
+	c.rerenderInvitees()
+}
+
 func (c *backupsInvitedContent) DisplayInvitesContent() {
 	c.RightContent.Objects = []fyne.CanvasObject{c.InvitesRightContent}
 	c.RightContent.Refresh()
@@ -108,10 +121,73 @@ func (c *backupsInvitedContent) DisplayBackupsContent() {
 	c.RightContent.Refresh()
 }
 
+func (c *backupsInvitedContent) rerenderInvitees() {
+	c.mu.Lock()
+	global.Log("updating invitees list")
+	c.InvitesListContainer.Objects = []fyne.CanvasObject{}
+
+	if len(viewmodels.GroupInvitees.Models) == 0 {
+		c.InvitesListContainer.Add(widget.NewLabel("There are no pending invites"))
+		c.InvitesListContainer.Refresh()
+		c.mu.Unlock()
+		return
+	}
+
+	for _, i := range viewmodels.GroupInvitees.Models {
+		c.InvitesListContainer.Add(NewInviteeCanvasObject(i))
+	}
+
+	c.InvitesListContainer.Refresh()
+	c.mu.Unlock()
+}
+
+func NewInviteeCanvasObject(i *models.Invite) fyne.CanvasObject {
+	return container.NewHBox(
+		widget.NewLabel(fmt.Sprintf("%v @ %v", i.User.Username, i.Date)),
+	)
+}
+
 func dialogCreateNewBackup() {
 	// TODO Create new backup dialog.
 }
 
 func dialogInviteUser() {
-	// TODO dialog invite user.
+	nameEntry := widget.NewEntry()
+	nameEntry.Validator = func(s string) error {
+		if len(s) < 3 {
+			return errors.New("at least 3 characters long")
+		}
+		return nil
+	}
+
+	dialog.NewForm("Invite user to " + viewmodels.SelectedGroup.Model.Name, "Send", "Cancel",
+		[]*widget.FormItem{
+			widget.NewFormItem("Name", nameEntry),
+		}, func(b bool) {
+			if b {
+				inviteUserToGroup(nameEntry.Text)
+			}
+		}, global.MainWindow).Show()
+}
+
+func inviteUserToGroup(name string) {
+	go func() {
+		resp, err := server.Mnimidamon.Group.InviteUserToGroup(&group.InviteUserToGroupParams{
+			Body:       &models.InviteUserPayload{Username: &name},
+			GroupID:    viewmodels.SelectedGroup.Model.GroupID,
+			Context:    server.ApiContext,
+		}, viewmodels.CurrentComputer.Auth)
+
+		if err != nil {
+			if br, ok := err.(*group.InviteUserToGroupBadRequest); ok {
+				infoDialog(br.GetPayload().Message)
+				return
+			}
+			infoDialog(err.Error())
+			return
+		}
+
+		// Add the created invitations to the group invitees.
+		viewmodels.GroupInvitees.Add(resp.Payload)
+	}()
 }

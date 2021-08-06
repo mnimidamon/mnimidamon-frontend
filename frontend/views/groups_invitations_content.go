@@ -284,7 +284,7 @@ func JoinComputerToGroup(size int, group *models.Group) {
 			},
 			GroupID:    group.GroupID,
 			Context:    server.ApiContext,
-		}, server.CompAuth)
+		}, viewmodels.CurrentComputer.Auth)
 
 		// Display the error.
 		if err != nil {
@@ -307,7 +307,7 @@ func AcceptInvite(i *models.Invite) {
 		resp, err := server.Mnimidamon.Invite.AcceptCurrentUserInvite(&invite.AcceptCurrentUserInviteParams{
 			GroupID:    i.Group.GroupID,
 			Context:    server.ApiContext,
-		}, server.CompAuth)
+		}, viewmodels.CurrentComputer.Auth)
 
 		if err != nil {
 			infoDialog(err.Error())
@@ -326,7 +326,7 @@ func DeclineInvite(i *models.Invite) {
 		_, err := server.Mnimidamon.Invite.DeclineCurrentUserInvite(&invite.DeclineCurrentUserInviteParams{
 			GroupID:    i.Group.GroupID,
 			Context:    server.ApiContext,
-		}, server.CompAuth)
+		}, viewmodels.CurrentComputer.Auth)
 
 		if err != nil {
 			infoDialog(err.Error())
@@ -347,7 +347,7 @@ func createNewGroup(name string) {
 		resp, err := server.Mnimidamon.Group.CreateGroup(&group.CreateGroupParams{
 			Body:    &models.GroupCreatePayload{Name: &name},
 			Context: server.ApiContext,
-		}, server.CompAuth)
+		}, viewmodels.CurrentComputer.Auth)
 
 		if err != nil {
 			if br, ok := err.(*group.CreateGroupBadRequest); ok {

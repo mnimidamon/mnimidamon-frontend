@@ -64,13 +64,13 @@ type JoinComputerToGroupParams struct {
 
 	/* Body.
 
-	   Group creation payload.
+	   Model creation payload.
 	*/
 	Body *models.CreateGroupComputerPayload
 
 	/* GroupID.
 
-	   Numeric ID of the Group.
+	   Numeric ID of the Model.
 	*/
 	GroupID int64
 

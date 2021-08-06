@@ -12,6 +12,7 @@ import (
 	"mnimidamonbackend/frontend/resources"
 	"mnimidamonbackend/frontend/views/fragments"
 	"mnimidamonbackend/frontend/views/server"
+	"mnimidamonbackend/frontend/views/viewmodels"
 	"mnimidamonbackend/models"
 )
 
@@ -53,7 +54,7 @@ func init() {
 						Name: &computerName,
 					},
 					Context: server.ApiContext,
-				}, server.UserAuth)
+				}, viewmodels.CurrentUser.Auth)
 
 				if err != nil {
 					if respErr, ok := err.(*authorization.RegisterComputerBadRequest); ok {

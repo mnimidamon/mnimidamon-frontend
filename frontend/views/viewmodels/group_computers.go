@@ -17,13 +17,8 @@ func init() {
 		Models: []*models.GroupComputer{},
 	}
 	
-	// If the user is logged in.
-	if services.ConfigurationStore.IsStored() {
-		GroupComputers.GetAllGroupComputers()
-	}
-	
-	// Register to fetch data upon authentication.
-	events.Authenticated.Register(GroupComputers)
+	// Register to fetch data upon computer change.
+	events.CurrentComputerUpdated.Register(GroupComputers)
 }
 
 type groupComputersViewModel struct {
@@ -53,7 +48,7 @@ func (vm *groupComputersViewModel) Add(groupComputer *models.GroupComputer) {
 	vm.TriggerUpdateEvent()
 }
 
-func (vm *groupComputersViewModel) HandleAuthenticated() {
+func (vm *groupComputersViewModel) HandleCurrentComputerUpdated() {
 	vm.GetAllGroupComputers()
 }
 
@@ -62,7 +57,7 @@ func (vm *groupComputersViewModel) GetAllGroupComputers()()  {
 		resp, err := server.Mnimidamon.GroupComputer.GetGroupComputersOfComputer(&group_computer.GetGroupComputersOfComputerParams{
 			ComputerID: services.ConfigurationStore.GetConfig().Computer.ComputerID,
 			Context:    server.ApiContext,
-		}, server.CompAuth)
+		}, CurrentComputer.Auth)
 
 		if err != nil {
 			dialog.ShowError(err, global.MainWindow)

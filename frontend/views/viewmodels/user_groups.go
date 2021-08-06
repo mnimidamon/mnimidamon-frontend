@@ -5,7 +5,6 @@ import (
 	"mnimidamonbackend/client/current_user"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
-	"mnimidamonbackend/frontend/services"
 	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/models"
 )
@@ -17,20 +16,15 @@ func init() {
 		Models: []*models.Group{},
 	}
 
-	// If the user is logged in.
-	if services.ConfigurationStore.IsStored() {
-		Groups.GetAllGroups()
-	}
-
 	// Register on confirm config.
-	events.Authenticated.Register(Groups)
+	events.CurrentComputerUpdated.Register(Groups)
 }
 
 type groupsViewModel struct {
 	Models []*models.Group
 }
 
-func (vm *groupsViewModel) HandleAuthenticated() {
+func (vm *groupsViewModel) HandleCurrentComputerUpdated() {
 	vm.GetAllGroups()
 }
 
@@ -43,7 +37,7 @@ func (vm *groupsViewModel) GetAllGroups() {
 	go func() {
 		resp, err := server.Mnimidamon.CurrentUser.GetCurrentUserGroups(&current_user.GetCurrentUserGroupsParams{
 			Context: server.ApiContext,
-		}, server.CompAuth)
+		}, CurrentComputer.Auth)
 
 		if err != nil {
 			dialog.ShowError(err, global.MainWindow)

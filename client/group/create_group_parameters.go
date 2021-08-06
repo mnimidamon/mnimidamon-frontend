@@ -63,7 +63,7 @@ type CreateGroupParams struct {
 
 	/* Body.
 
-	   Group creation payload.
+	   Model creation payload.
 	*/
 	Body *models.GroupCreatePayload
 

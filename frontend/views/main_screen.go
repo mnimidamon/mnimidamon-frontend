@@ -45,7 +45,6 @@ func init() {
 		Container:        mainContainer,
 		ToolbarContainer: toolbarContainer,
 		ContentContainer: contentContainer,
-		Config:           nil,
 		CurrentToolbar:   toolbar,
 		ToolbarBind:      toolbarBind,
 
@@ -53,18 +52,12 @@ func init() {
 		BackupsInvitedContent:    NewBackupsAndInvitedContent(),
 	}
 
-	// Get the config if it's present.
-	if services.ConfigurationStore.IsStored() {
-		MainScreen.Config = services.ConfigurationStore.GetConfig()
-	}
-
 	// Handle config changes.
-	events.ConfirmConfig.Register(MainScreen)
 	events.SelectedGroupUpdated.Register(MainScreen)
 	events.RequestGroupsContent.Register(MainScreen)
 
-	// Refresh the UI to the current application state.
-	MainScreen.refresh()
+	// Handle current computer update.
+	events.CurrentComputerUpdated.Register(MainScreen)
 
 	// Set the current content to groups.
 	MainScreen.SetGroupsContent()
@@ -79,10 +72,13 @@ type mainScreen struct {
 	CurrentContent fyne.CanvasObject // CurrentContent inside the ContentContainer.
 
 	ToolbarBind binding.String // Binding for the toolbar label name.
-	Config      *global.Config
 
 	GroupsInvitationsContent *groupsInvitationsContent // Content that represents the user groups and invitations to groups.
 	BackupsInvitedContent    *backupsInvitedContent    // Content that displays a group backups and the sent invites.
+}
+
+func (ms *mainScreen) HandleCurrentComputerUpdated() {
+	ms.refresh()
 }
 
 // Navigate to groups content.
@@ -103,22 +99,12 @@ func (ms *mainScreen) SetGroupsContent() {
 	ms.SetCurrentContent(ms.GroupsInvitationsContent.Container)
 }
 
-func (ms *mainScreen) HandleConfirmConfig(config global.Config) {
-	// Save the config.
-	if ms.Config == nil {
-		ms.Config = new(global.Config)
-	}
-
-	*ms.Config = config
-	ms.refresh()
-}
-
 // Replaces the current content.
 func (ms *mainScreen) SetCurrentContent(content fyne.CanvasObject) {
 	ms.ContentContainer.Remove(ms.CurrentContent)
 	ms.ContentContainer.Add(content)
 	ms.CurrentContent = content
-	ms.refresh()
+	ms.CurrentContent.Refresh()
 }
 
 // Refresh the UI based on the application state.
@@ -128,17 +114,15 @@ func (ms *mainScreen) refresh() {
 
 // Refresh the Toolbar based on the application state.
 func (ms *mainScreen) refreshToolbar() {
-	if ms.Config != nil {
-		switch ms.CurrentContent {
-		case ms.BackupsInvitedContent.Container:
-			_ = ms.ToolbarBind.Set(ms.Config.Computer.Name + "@" + viewmodels.SelectedGroup.Group.Name)
-			break
-		case ms.GroupsInvitationsContent.Container:
-			_ = ms.ToolbarBind.Set(ms.Config.User.Username + "@" + ms.Config.Computer.Name)
-			break
-		default:
-			_ = ms.ToolbarBind.Set("undefined content")
-		}
+	switch ms.CurrentContent {
+	case ms.BackupsInvitedContent.Container:
+		_ = ms.ToolbarBind.Set(viewmodels.CurrentComputer.Model.Name + "@" + viewmodels.SelectedGroup.Model.Name)
+		break
+	case ms.GroupsInvitationsContent.Container:
+		_ = ms.ToolbarBind.Set(viewmodels.CurrentUser.Model.Username + "@" + viewmodels.CurrentComputer.Model.Name)
+		break
+	default:
+		_ = ms.ToolbarBind.Set("undefined content")
 	}
 }
 

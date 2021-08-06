@@ -74,7 +74,7 @@ type UploadBackupParams struct {
 
 	/* GroupID.
 
-	   Numeric ID of the Group.
+	   Numeric ID of the Model.
 	*/
 	GroupID int64
 

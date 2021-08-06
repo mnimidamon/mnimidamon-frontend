@@ -21,10 +21,10 @@ type applicationContainer struct {
 func (ac *applicationContainer) Run() {
 	// Open the debug window.
 	/*
-	go func() {
-		time.Sleep(time.Second)
-		ac.OpenDebugWindowView()
-	}()
+		go func() {
+			time.Sleep(time.Second)
+			ac.OpenDebugWindowView()
+		}()
 	*/
 
 	// Get the first window that we have to show.
@@ -87,6 +87,12 @@ func NewEntryPoint() ApplicationEntryPoint {
 	events.RestartConfiguration.Register(ac)
 	events.RequestComputerRegisterView.Register(ac)
 	events.RequestMainView.Register(ac)
+
+	// If config is saved, confirm it.
+	// So that everything gets loaded up.
+	if services.ConfigurationStore.IsStored() {
+		events.ConfirmConfig.Trigger(*services.ConfigurationStore.GetConfig())
+	}
 
 	return ac
 }
