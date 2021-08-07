@@ -35,7 +35,7 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 		backupsToolbarLabel,
 		widget.NewToolbarSpacer(),
 		widget.NewToolbarAction(resources.SyncSvg, func() {
-			// TODO reload backups
+			viewmodels.Backups.GetAllBackups()
 		}),
 		widget.NewToolbarAction(resources.DiskSaveSvg, func() {
 			dialogCreateNewBackup()
@@ -91,11 +91,11 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 		LeftNavigation: leftNavigation,
 		RightContent:   rightContent,
 
-		BackupRightContent:  container.NewBorder(backupsToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(backupsListContainer))),
+		BackupsRightContent: container.NewBorder(backupsToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(backupsListContainer))),
 		InvitesRightContent: container.NewBorder(invitesToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(invitesListContainer))),
 		MembersRightContent: container.NewBorder(membersToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(membersListContainer))),
 
-		BackupListContainer:  backupsListContainer,
+		BackupsListContainer: backupsListContainer,
 		InvitesListContainer: invitesListContainer,
 		MembersListContainer: membersListContainer,
 	}
@@ -104,10 +104,10 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 	bc.DisplayBackupsContent()
 
 	// Register listeners.
-	// TODO: updated backups, group computers
 	events.GroupInviteesUpdated.Register(bc)
 	events.GroupMembersUpdated.Register(bc)
 	events.GroupComputersUpdated.Register(bc)
+	events.BackupsUpdated.Register(bc)
 
 	return bc
 }
@@ -117,15 +117,19 @@ type backupsInvitedContent struct {
 	LeftNavigation *fyne.Container // Left split content.
 	RightContent   *fyne.Container // Right split content.
 
-	BackupRightContent  *fyne.Container // Content displayed upon Invites navigation.
+	BackupsRightContent *fyne.Container // Content displayed upon Invites navigation.
 	InvitesRightContent *fyne.Container // Content displayed upon Backups navigation.
 	MembersRightContent *fyne.Container // Content displayed upon Members navigation.
 
-	BackupListContainer  *fyne.Container // Containing the backups list.
+	BackupsListContainer *fyne.Container // Containing the backups list.
 	InvitesListContainer *fyne.Container // Containing the invites group list.
 	MembersListContainer *fyne.Container // Containing the group members list.
 
 	mu sync.Mutex // Lock when rendering UI elements.
+}
+
+func (c *backupsInvitedContent) HandleBackupsUpdate() {
+	c.rerenderBackups()
 }
 
 func (c *backupsInvitedContent) HandleGroupComputersUpdated() {
@@ -146,7 +150,7 @@ func (c *backupsInvitedContent) DisplayInvitesContent() {
 }
 
 func (c *backupsInvitedContent) DisplayBackupsContent() {
-	c.RightContent.Objects = []fyne.CanvasObject{c.BackupRightContent}
+	c.RightContent.Objects = []fyne.CanvasObject{c.BackupsRightContent}
 	c.RightContent.Refresh()
 }
 
@@ -198,6 +202,31 @@ func (c *backupsInvitedContent) rerenderMembers() {
 func (c *backupsInvitedContent) DisplayMembersContent() {
 	c.RightContent.Objects = []fyne.CanvasObject{c.MembersRightContent}
 	c.RightContent.Refresh()
+}
+
+func (c *backupsInvitedContent) rerenderBackups() {
+	global.Log("updating backups list")
+
+	c.mu.Lock()
+	c.BackupsListContainer.Objects = []fyne.CanvasObject{}
+
+	if len(viewmodels.Backups.Models) == 0 {
+		c.BackupsListContainer.Add(NewItalicLabel("There are no backups in this group"))
+		c.BackupsListContainer.Refresh()
+		c.mu.Unlock()
+		return
+	}
+
+	for _, b := range viewmodels.Backups.Models {
+		c.BackupsListContainer.Add(NewBackupCanvasObject(b))
+	}
+
+	c.BackupsListContainer.Refresh()
+	c.mu.Unlock()
+}
+
+func NewBackupCanvasObject(b *models.Backup) fyne.CanvasObject {
+	return widget.NewLabel(b.Filename)
 }
 
 func NewMemberCanvasObject(m *models.User) fyne.CanvasObject {

@@ -1,6 +1,5 @@
 package events
 
-
 var InvitesUpdated invitesUpdated
 
 type InvitesUpdatedHandler interface {
@@ -11,7 +10,6 @@ type invitesUpdated struct {
 	handlers []InvitesUpdatedHandler
 }
 
-
 func (e *invitesUpdated) Register(handler InvitesUpdatedHandler) {
 	e.handlers = append(e.handlers, handler)
 }
@@ -21,4 +19,3 @@ func (e *invitesUpdated) Trigger() {
 		go handler.HandleInvitesUpdate()
 	}
 }
-
