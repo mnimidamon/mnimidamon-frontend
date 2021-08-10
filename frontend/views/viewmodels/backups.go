@@ -46,6 +46,15 @@ func (vm *backupsViewModel) GetAllBackups() {
 	}()
 }
 
+func (vm *backupsViewModel) Add(backup *models.Backup) {
+	// Check if the group was not switched while the backup was loading itself into existence xD.
+	if backup.GroupID != SelectedGroup.Model.GroupID {
+		return
+	}
+	vm.Models = append(vm.Models, backup)
+	vm.TriggerUpdateEvent()
+}
+
 func (vm *backupsViewModel) TriggerUpdateEvent() {
 	events.BackupsUpdated.Trigger()
 }

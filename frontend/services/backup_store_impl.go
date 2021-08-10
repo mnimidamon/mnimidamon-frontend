@@ -71,3 +71,17 @@ func (bs *backupStoreImpl) makeRequiredFolders() error {
 
 	return nil
 }
+
+func (bs *backupStoreImpl) DeleteTempFile(filename string) {
+	global.Log("deleting file from temp %v", filename)
+	os.Remove(bs.GetTempPath(filename))
+}
+
+func (bs *backupStoreImpl) MoveFromTemp(filename string, backupID int64) error {
+	global.Log("moving file from temp %v", filename)
+
+	oldLocation := bs.GetTempPath(filename)
+	newLocation := bs.GetBackupPath(int(backupID))
+
+	return os.Rename(oldLocation, newLocation)
+}

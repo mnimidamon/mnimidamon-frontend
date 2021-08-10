@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"mnimidamonbackend/client/backup"
 	"mnimidamonbackend/client/group"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
@@ -27,7 +28,7 @@ import (
 	"time"
 )
 
-func NewBackupsAndInvitedContent() *backupsInvitedContent {
+func NewBackupsAndInvitedContent(processContainer fyne.CanvasObject) *backupsInvitedContent {
 	backupsLabel := widget.NewLabelWithStyle("backups", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	invitesLabel := widget.NewLabelWithStyle("invited", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	membersLabel := widget.NewLabelWithStyle("members", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
@@ -90,8 +91,6 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 	invitesListContainer := container.NewVBox(NewItalicLabel("loading..."))
 	membersListContainer := container.NewVBox(NewItalicLabel("loading..."))
 
-	processListContainer := container.NewVBox()
-
 	rightContent := container.NewMax()
 
 	mainContainer := container.NewBorder(nil, nil, leftNavigation, nil, rightContent)
@@ -101,11 +100,9 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 		LeftNavigation: leftNavigation,
 		RightContent:   rightContent,
 
-		BackupsRightContent: container.NewBorder(container.NewVBox(backupsToolbar, processListContainer), nil, nil, nil, container.NewVScroll(container.NewPadded(backupsListContainer))),
-		InvitesRightContent: container.NewBorder(invitesToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(invitesListContainer))),
-		MembersRightContent: container.NewBorder(membersToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(membersListContainer))),
-
-		ProcessListContent: processListContainer,
+		BackupsRightContent: container.NewBorder(backupsToolbar, processContainer, nil, nil, container.NewVScroll(container.NewPadded(backupsListContainer))),
+		InvitesRightContent: container.NewBorder(invitesToolbar, processContainer, nil, nil, container.NewVScroll(container.NewPadded(invitesListContainer))),
+		MembersRightContent: container.NewBorder(membersToolbar, processContainer, nil, nil, container.NewVScroll(container.NewPadded(membersListContainer))),
 
 		BackupsListContainer: backupsListContainer,
 		InvitesListContainer: invitesListContainer,
@@ -132,8 +129,6 @@ type backupsInvitedContent struct {
 	BackupsRightContent *fyne.Container // Content displayed upon Invites navigation.
 	InvitesRightContent *fyne.Container // Content displayed upon Backups navigation.
 	MembersRightContent *fyne.Container // Content displayed upon Members navigation.
-
-	ProcessListContent *fyne.Container
 
 	BackupsListContainer *fyne.Container // Containing the backups list.
 	InvitesListContainer *fyne.Container // Containing the invites group list.
@@ -313,62 +308,147 @@ func (c *backupsInvitedContent) dialogCreateNewBackup() {
 			// TODO copy key
 		}, func(b bool) {
 			if b {
-
-				// Get the path to the file we want to encrypt and backup.
 				path := fileEntry.Text
 				global.Log("requested backup creation of %v", fileEntry.Text)
 
-				// Open the file.
-				file, err := os.Open(path)
-				if err != nil {
-					infoDialog("could not open file: " + err.Error())
-					return
-				}
-
-				// File stats to get the size.
-				fi, err := file.Stat()
-				if err != nil {
-					infoDialog("could not get file info: " + err.Error())
-					return
-				}
-
-				fname := filepath.Base(path)
-				payload := &models.InitializeGroupBackupPayload{
-					FileName: &fname,
-					Hash:     new(string),
-					Size:     new(int64),
-				}
-
-				// Number of bytes encrypted.
-				readBytes := new(int)
-
-				loaderName := ""
-				if len(*payload.FileName) > 7 {
-					loaderName = (*payload.FileName)[:7] + "..."
-				}
-				bl := NewBackupLoaderProcess(loaderName, func() string {
-					percentage := int(float64(*readBytes) / float64(fi.Size()) * 100)
-					if percentage == 100 {
-						return "Encrypted"
-					}
-					return "Encryption " + strconv.Itoa(percentage) + "%"
-				})
-
-				c.ProcessListContent.Add(bl.GetCanvasObject())
-				bl.StartRefreshing()
-
-				go func() {
-					encryptedFile, err := services.BackupCryptography.Encrypt(payload, key, file, readBytes)
-					if err != nil {
-						infoDialog("error encrypting file: " + err.Error())
-						return
-					}
-
-					bl.StopRefreshing()
-					global.Log("encryption complete %v %v", encryptedFile.Name(), payload)
-				}()
+				// Start the procedure.
+				c.BackupUploadProcedure(path, key)
 			}
 		}, global.MainWindow).Show()
+}
+
+func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.EncryptionKey) {
+
+	// Open the file.
+	file, err := os.Open(path)
+	if err != nil {
+		infoDialog("could not open file: " + err.Error())
+		return
+	}
+
+	// File stats to get the size.
+	fi, err := file.Stat()
+	if err != nil {
+		infoDialog("could not get file info: " + err.Error())
+		return
+	}
+
+	// Get the file name.
+	fname := filepath.Base(path)
+	payload := &models.InitializeGroupBackupPayload{
+		FileName: &fname,
+		Hash:     new(string),
+		Size:     new(int64),
+	}
+
+	// Number of bytes encrypted.
+	readBytes := new(int)
+
+	// Shorten the name if its too long.
+	loaderName := ""
+	if len(*payload.FileName) > 12 {
+		loaderName = (*payload.FileName)[:12] + "..."
+	}
+
+	// New backup loader process for UI.
+	bl := NewBackupLoaderProcess(loaderName, func() string {
+		// Calculate the percentage based on the size and the pointer value of bytes already processed.
+		percentage := int(float64(*readBytes) / float64(fi.Size()) * 100)
+		if percentage == 100 {
+			return "Encrypted"
+		}
+		return "Encrypting " + strconv.Itoa(percentage) + "% ..."
+	})
+
+	// Inform about a new process.
+	events.ProcessStarted.Trigger(bl)
+
+	go func() {
+		// Presave the groupID in case it gets switched up inbetween processing.
+		groupID := viewmodels.SelectedGroup.Model.GroupID
+		global.Log("group id pre init %v", groupID)
+
+		// Remove the process from the parent container.
+		defer bl.RemoveFromParentContainer()
+
+		// Encrypt and get the encrypted file. Payload will also be populated with the size and the hash.
+		encryptedFile, err := services.BackupCryptography.Encrypt(payload, key, file, readBytes)
+		if err != nil {
+			infoDialog("error encrypting file: " + err.Error())
+			return
+		}
+
+		// Defer clean the temp folder of that encrypted file.
+		defer encryptedFile.Close()
+		defer services.BackupStorage.DeleteTempFile(*payload.FileName)
+
+		// Encryption is complete.
+		global.Log("encryption complete %v %v", encryptedFile.Name(), payload)
+
+		// Start the backup initialization on the server.
+		bl.StopRefreshing()
+		time.Sleep(time.Second)
+		bl.UpdateInfo("Initializing...")
+		time.Sleep(time.Second * 2)
+
+		global.Log("group id init %v", groupID)
+
+		// Request the initialization on the server.
+		respInit, err := server.Mnimidamon.Backup.InitializeGroupBackup(&backup.InitializeGroupBackupParams{
+			Body:       payload,
+			GroupID:    groupID,
+			Context:    server.ApiContext,
+		}, viewmodels.CurrentComputer.Auth)
+
+		// Check if error occurred.
+		if err != nil {
+			infoDialog(err.Error())
+			bl.UpdateInfo("Initialization error, cancelling.")
+			time.Sleep(time.Second)
+			return
+		}
+
+
+		bl.UpdateInfo("Initialized")
+		time.Sleep(time.Second * 2)
+		bl.UpdateInfo("Uploading...")
+		global.Log("backup init response %v", respInit.Payload)
+
+		// Add it to the view models.
+		viewmodels.Backups.Add(respInit.Payload)
+
+		// Upload it to the server.
+		respUpload, err := server.Mnimidamon.Backup.UploadBackup(&backup.UploadBackupParams{
+			BackupData: encryptedFile,
+			BackupID:   respInit.Payload.BackupID,
+			GroupID:    groupID,
+			Context:    server.ApiContext,
+		}, viewmodels.CurrentComputer.Auth)
+
+
+		if err != nil {
+			infoDialog(err.Error())
+			bl.UpdateInfo("Upload error, cancelling.")
+			time.Sleep(time.Second * 2)
+			return
+		}
+
+		time.Sleep(time.Second * 1)
+		bl.UpdateInfo("Uploaded")
+		global.Log("upload response %v", respUpload.Payload)
+
+		// Move the file from the temp folder to the main folder.
+		if err := services.BackupStorage.MoveFromTemp(*payload.FileName, respInit.Payload.BackupID); err != nil {
+			infoDialog(err.Error())
+			bl.UpdateInfo("File moving error, cancelling.")
+			time.Sleep(time.Second * 2)
+			return
+		}
+
+		time.Sleep(time.Second * 1)
+		bl.UpdateInfo("Successful")
+		time.Sleep(time.Second * 2)
+	}()
 }
 
 func dialogInviteUser() {
@@ -416,23 +496,24 @@ func NewItalicLabel(msg string) *widget.Label {
 	return widget.NewLabelWithStyle(msg, fyne.TextAlignLeading, fyne.TextStyle{Italic: true})
 }
 
-func NewBackupLoaderProcess(name string, refresher func() string) *BackupLoaderProcess{
+func NewBackupLoaderProcess(name string, refresher func() string) *BackupLoaderProcess {
 	infoBind := binding.NewString()
 
 	return &BackupLoaderProcess{
-		Name:           name,
-		infoBinding:    infoBind,
-		canvasObject:   container.NewHBox(widget.NewLabel(name), layout.NewSpacer(), widget.NewLabelWithData(infoBind)),
-		refresher:      refresher,
+		Name:         name,
+		infoBinding:  infoBind,
+		canvasObject: container.NewHBox(widget.NewLabel(name), layout.NewSpacer(), widget.NewLabelWithData(infoBind)),
+		refresher:    refresher,
 	}
 }
 
 type BackupLoaderProcess struct {
-	Name string
-	infoBinding binding.String
+	Name         string
+	infoBinding  binding.String
 	canvasObject fyne.CanvasObject
 
-	refresher func() string
+	parent      *fyne.Container
+	refresher   func() string
 	refreshStop context.CancelFunc
 }
 
@@ -440,26 +521,56 @@ func (b *BackupLoaderProcess) UpdateInfo(msg string) {
 	b.infoBinding.Set(msg)
 }
 
+func (b *BackupLoaderProcess) AddToParentContainer(parent *fyne.Container) {
+	b.parent = parent
+	parent.Add(b.GetCanvasObject())
+	b.StartRefreshing()
+}
+
 func (b *BackupLoaderProcess) GetCanvasObject() fyne.CanvasObject {
 	return b.canvasObject
 }
 
+func (b *BackupLoaderProcess) RemoveFromParentContainer() {
+	if b.parent != nil {
+		b.StopRefreshing()
+		go func() {
+			time.Sleep(time.Millisecond * 1500)
+			b.parent.Remove(b.canvasObject)
+			b.parent.Refresh()
+			b.parent = nil
+		}()
+	}
+}
 func (b *BackupLoaderProcess) StopRefreshing() {
 	if b.refreshStop != nil {
 		b.refreshStop()
+		b.refreshStop = nil
 	}
 }
 
 func (b *BackupLoaderProcess) StartRefreshing() {
+	if b.refreshStop != nil {
+		return
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	b.refreshStop = cancel
 	go b.RefreshRoutine(ctx)
 }
 
 func (b *BackupLoaderProcess) RefreshRoutine(ctx context.Context) {
+	global.Log("task ui refreshing started...")
 	for {
-		global.Log("Refreshing")
-		time.Sleep(time.Millisecond * 100)
-		b.UpdateInfo(b.refresher())
+		select {
+		case <-ctx.Done():
+			global.Log("stopped task refreshing, context canceled")
+			return
+		default:
+			if b.parent != nil {
+				b.UpdateInfo(b.refresher())
+			}
+			time.Sleep(time.Millisecond * 150)
+		}
 	}
 }

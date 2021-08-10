@@ -21,6 +21,7 @@ var MainScreen *mainScreen
 func init() {
 	toolbarContainer := container.NewMax()
 	contentContainer := container.NewMax()
+	processContainer := container.NewVBox()
 	mainContainer := container.NewBorder(toolbarContainer, nil, nil, nil, contentContainer)
 
 	toolbarLabel := widget.NewLabelWithStyle("-@-", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
@@ -42,14 +43,16 @@ func init() {
 
 	// Initialize it to zero values.
 	MainScreen = &mainScreen{
-		Container:        mainContainer,
-		ToolbarContainer: toolbarContainer,
-		ContentContainer: contentContainer,
-		CurrentToolbar:   toolbar,
-		ToolbarBind:      toolbarBind,
+		Container:                mainContainer,
+		ToolbarContainer:         toolbarContainer,
+		ContentContainer:         contentContainer,
+		ProcessListContainer:     processContainer,
 
-		GroupsInvitationsContent: NewGroupAndInvitationsContent(),
-		BackupsInvitedContent:    NewBackupsAndInvitedContent(),
+		CurrentToolbar:           toolbar,
+		ToolbarBind:              toolbarBind,
+
+		GroupsInvitationsContent: NewGroupAndInvitationsContent(processContainer),
+		BackupsInvitedContent:    NewBackupsAndInvitedContent(processContainer),
 	}
 
 	// Handle config changes.
@@ -58,6 +61,9 @@ func init() {
 
 	// Handle current computer update.
 	events.CurrentComputerUpdated.Register(MainScreen)
+
+	// Handle process creation.
+	events.ProcessStarted.Register(MainScreen)
 
 	// Set the current content to groups.
 	MainScreen.SetGroupsContent()
@@ -68,13 +74,20 @@ type mainScreen struct {
 	ToolbarContainer *fyne.Container // Toolbar Container for toolbar replacement.
 	ContentContainer *fyne.Container // Content Container for different content.
 
+	ProcessListContainer *fyne.Container // Running processes.
+
 	CurrentToolbar *widget.Toolbar   // CurrentToolbar inside the ToolbarContainer.
 	CurrentContent fyne.CanvasObject // CurrentContent inside the ContentContainer.
 
 	ToolbarBind binding.String // Binding for the toolbar label name.
 
+
 	GroupsInvitationsContent *groupsInvitationsContent // Content that represents the user groups and invitations to groups.
 	BackupsInvitedContent    *backupsInvitedContent    // Content that displays a group backups and the sent invites.
+}
+
+func (ms *mainScreen) HandleProcessStarted(process events.LoaderProcess) {
+	process.AddToParentContainer(ms.ProcessListContainer)
 }
 
 func (ms *mainScreen) HandleCurrentComputerUpdated() {

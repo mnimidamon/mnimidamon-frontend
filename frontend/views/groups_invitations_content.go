@@ -23,7 +23,7 @@ import (
 	"sync"
 )
 
-func NewGroupAndInvitationsContent() *groupsInvitationsContent {
+func NewGroupAndInvitationsContent(processContainer fyne.CanvasObject) *groupsInvitationsContent {
 
 	// Base toolbar elements.
 	groupLabel := widget.NewLabelWithStyle("groups", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
@@ -81,8 +81,8 @@ func NewGroupAndInvitationsContent() *groupsInvitationsContent {
 		LeftNavigation: leftNavigation,
 		RightContent:   rightContent,
 
-		GroupRightContent:  container.NewBorder(groupToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(groupListContainer))),
-		InviteRightContent: container.NewBorder(inviteToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(inviteListContainer))),
+		GroupRightContent:  container.NewBorder(groupToolbar, processContainer, nil, nil, container.NewVScroll(container.NewPadded(groupListContainer))),
+		InviteRightContent: container.NewBorder(inviteToolbar, processContainer, nil, nil, container.NewVScroll(container.NewPadded(inviteListContainer))),
 
 		GroupListContainer:  groupListContainer,
 		InviteListContainer: inviteListContainer,
