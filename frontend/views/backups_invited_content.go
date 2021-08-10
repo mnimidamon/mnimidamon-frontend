@@ -1,10 +1,13 @@
 package views
 
 import (
+	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
@@ -12,11 +15,16 @@ import (
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/resources"
+	"mnimidamonbackend/frontend/services"
 	"mnimidamonbackend/frontend/views/fragments"
 	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/frontend/views/viewmodels"
 	"mnimidamonbackend/models"
+	"os"
+	"path/filepath"
+	"strconv"
 	"sync"
+	"time"
 )
 
 func NewBackupsAndInvitedContent() *backupsInvitedContent {
@@ -38,17 +46,17 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 			viewmodels.Backups.GetAllBackups()
 		}),
 		widget.NewToolbarAction(resources.DiskSaveSvg, func() {
-			dialogCreateNewBackup()
+			bc.dialogCreateNewBackup()
 		}),
 	)
 
 	membersToolbar := widget.NewToolbar(
-			membersToolbarLabel,
-			widget.NewToolbarSpacer(),
-			widget.NewToolbarAction(resources.SyncSvg, func() {
-				viewmodels.GroupMembers.GetAllMembers()
-				viewmodels.GroupComputers.GetAllGroupComputers()
-			}),
+		membersToolbarLabel,
+		widget.NewToolbarSpacer(),
+		widget.NewToolbarAction(resources.SyncSvg, func() {
+			viewmodels.GroupMembers.GetAllMembers()
+			viewmodels.GroupComputers.GetAllGroupComputers()
+		}),
 	)
 
 	invitesToolbar := widget.NewToolbar(
@@ -82,6 +90,8 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 	invitesListContainer := container.NewVBox(NewItalicLabel("loading..."))
 	membersListContainer := container.NewVBox(NewItalicLabel("loading..."))
 
+	processListContainer := container.NewVBox()
+
 	rightContent := container.NewMax()
 
 	mainContainer := container.NewBorder(nil, nil, leftNavigation, nil, rightContent)
@@ -91,9 +101,11 @@ func NewBackupsAndInvitedContent() *backupsInvitedContent {
 		LeftNavigation: leftNavigation,
 		RightContent:   rightContent,
 
-		BackupsRightContent: container.NewBorder(backupsToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(backupsListContainer))),
+		BackupsRightContent: container.NewBorder(container.NewVBox(backupsToolbar, processListContainer), nil, nil, nil, container.NewVScroll(container.NewPadded(backupsListContainer))),
 		InvitesRightContent: container.NewBorder(invitesToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(invitesListContainer))),
 		MembersRightContent: container.NewBorder(membersToolbar, nil, nil, nil, container.NewVScroll(container.NewPadded(membersListContainer))),
+
+		ProcessListContent: processListContainer,
 
 		BackupsListContainer: backupsListContainer,
 		InvitesListContainer: invitesListContainer,
@@ -120,6 +132,8 @@ type backupsInvitedContent struct {
 	BackupsRightContent *fyne.Container // Content displayed upon Invites navigation.
 	InvitesRightContent *fyne.Container // Content displayed upon Backups navigation.
 	MembersRightContent *fyne.Container // Content displayed upon Members navigation.
+
+	ProcessListContent *fyne.Container
 
 	BackupsListContainer *fyne.Container // Containing the backups list.
 	InvitesListContainer *fyne.Container // Containing the invites group list.
@@ -247,7 +261,7 @@ func NewComputersCanvasObject(userID int64) fyne.CanvasObject {
 }
 
 func NewGroupComputerCanvasObject(gc *models.GroupComputer) fyne.CanvasObject {
-	return widget.NewLabel(fmt.Sprintf("   %v  \t%vMB", gc.Computer.Name, gc.StorageSize / 1024))
+	return widget.NewLabel(fmt.Sprintf("   %v  \t%vMB", gc.Computer.Name, gc.StorageSize/1024))
 }
 
 func NewInviteeCanvasObject(i *models.Invite) fyne.CanvasObject {
@@ -256,8 +270,105 @@ func NewInviteeCanvasObject(i *models.Invite) fyne.CanvasObject {
 	)
 }
 
-func dialogCreateNewBackup() {
-	// TODO Create new backup dialog.
+func (c *backupsInvitedContent) dialogCreateNewBackup() {
+	// Create a random key and display it.
+	key, err := services.NewRandomEncryptionKey()
+	if err != nil {
+		infoDialog("could not create random encryption key: " + err.Error())
+		return
+	}
+	keyEntry := widget.NewEntry()
+	keyEntry.Disable()
+	keyEntry.SetText(hex.EncodeToString(key))
+
+	// File entry.
+	fileEntry := widget.NewEntry()
+	fileEntry.SetPlaceHolder("path to the file..")
+	fileEntry.Validator = func(s string) error {
+		if _, err := os.Stat(s); os.IsNotExist(err) {
+			return errors.New("file does not exist")
+		}
+		return nil
+	}
+
+	// The dialog to get the file selection.
+	selectFileDialog := dialog.NewFileOpen(func(uri fyne.URIReadCloser, err error) {
+		if uri != nil {
+			fileEntry.SetText(uri.URI().Path())
+			uri.Close()
+		}
+	}, global.MainWindow)
+
+	// Button for file selection dialog show.
+	buttonSelectFolder := widget.NewButtonWithIcon("Select file", resources.FolderOpenSvg, func() {
+		selectFileDialog.Show()
+	})
+
+	// Combined dialog for creating new backup.
+	dialog.NewForm("Backup a new file inside the group "+viewmodels.SelectedGroup.Model.Name, "Back it up", "Cancel",
+		[]*widget.FormItem{
+			widget.NewFormItem("File", fileEntry),
+			widget.NewFormItem("", buttonSelectFolder),
+			widget.NewFormItem("Decryption key", keyEntry),
+			// TODO copy key
+		}, func(b bool) {
+			if b {
+
+				// Get the path to the file we want to encrypt and backup.
+				path := fileEntry.Text
+				global.Log("requested backup creation of %v", fileEntry.Text)
+
+				// Open the file.
+				file, err := os.Open(path)
+				if err != nil {
+					infoDialog("could not open file: " + err.Error())
+					return
+				}
+
+				// File stats to get the size.
+				fi, err := file.Stat()
+				if err != nil {
+					infoDialog("could not get file info: " + err.Error())
+					return
+				}
+
+				fname := filepath.Base(path)
+				payload := &models.InitializeGroupBackupPayload{
+					FileName: &fname,
+					Hash:     new(string),
+					Size:     new(int64),
+				}
+
+				// Number of bytes encrypted.
+				readBytes := new(int)
+
+				loaderName := ""
+				if len(*payload.FileName) > 7 {
+					loaderName = (*payload.FileName)[:7] + "..."
+				}
+				bl := NewBackupLoaderProcess(loaderName, func() string {
+					percentage := int(float64(*readBytes) / float64(fi.Size()) * 100)
+					if percentage == 100 {
+						return "Encrypted"
+					}
+					return "Encryption " + strconv.Itoa(percentage) + "%"
+				})
+
+				c.ProcessListContent.Add(bl.GetCanvasObject())
+				bl.StartRefreshing()
+
+				go func() {
+					encryptedFile, err := services.BackupCryptography.Encrypt(payload, key, file, readBytes)
+					if err != nil {
+						infoDialog("error encrypting file: " + err.Error())
+						return
+					}
+
+					bl.StopRefreshing()
+					global.Log("encryption complete %v %v", encryptedFile.Name(), payload)
+				}()
+			}
+		}, global.MainWindow).Show()
 }
 
 func dialogInviteUser() {
@@ -269,7 +380,7 @@ func dialogInviteUser() {
 		return nil
 	}
 
-	dialog.NewForm("Invite user to " + viewmodels.SelectedGroup.Model.Name, "Send", "Cancel",
+	dialog.NewForm("Invite user to "+viewmodels.SelectedGroup.Model.Name, "Send", "Cancel",
 		[]*widget.FormItem{
 			widget.NewFormItem("Name", nameEntry),
 		}, func(b bool) {
@@ -282,9 +393,9 @@ func dialogInviteUser() {
 func inviteUserToGroup(name string) {
 	go func() {
 		resp, err := server.Mnimidamon.Group.InviteUserToGroup(&group.InviteUserToGroupParams{
-			Body:       &models.InviteUserPayload{Username: &name},
-			GroupID:    viewmodels.SelectedGroup.Model.GroupID,
-			Context:    server.ApiContext,
+			Body:    &models.InviteUserPayload{Username: &name},
+			GroupID: viewmodels.SelectedGroup.Model.GroupID,
+			Context: server.ApiContext,
 		}, viewmodels.CurrentComputer.Auth)
 
 		if err != nil {
@@ -301,6 +412,54 @@ func inviteUserToGroup(name string) {
 	}()
 }
 
-func NewItalicLabel(msg string) *widget.Label{
+func NewItalicLabel(msg string) *widget.Label {
 	return widget.NewLabelWithStyle(msg, fyne.TextAlignLeading, fyne.TextStyle{Italic: true})
+}
+
+func NewBackupLoaderProcess(name string, refresher func() string) *BackupLoaderProcess{
+	infoBind := binding.NewString()
+
+	return &BackupLoaderProcess{
+		Name:           name,
+		infoBinding:    infoBind,
+		canvasObject:   container.NewHBox(widget.NewLabel(name), layout.NewSpacer(), widget.NewLabelWithData(infoBind)),
+		refresher:      refresher,
+	}
+}
+
+type BackupLoaderProcess struct {
+	Name string
+	infoBinding binding.String
+	canvasObject fyne.CanvasObject
+
+	refresher func() string
+	refreshStop context.CancelFunc
+}
+
+func (b *BackupLoaderProcess) UpdateInfo(msg string) {
+	b.infoBinding.Set(msg)
+}
+
+func (b *BackupLoaderProcess) GetCanvasObject() fyne.CanvasObject {
+	return b.canvasObject
+}
+
+func (b *BackupLoaderProcess) StopRefreshing() {
+	if b.refreshStop != nil {
+		b.refreshStop()
+	}
+}
+
+func (b *BackupLoaderProcess) StartRefreshing() {
+	ctx, cancel := context.WithCancel(context.Background())
+	b.refreshStop = cancel
+	go b.RefreshRoutine(ctx)
+}
+
+func (b *BackupLoaderProcess) RefreshRoutine(ctx context.Context) {
+	for {
+		global.Log("Refreshing")
+		time.Sleep(time.Millisecond * 100)
+		b.UpdateInfo(b.refresher())
+	}
 }
