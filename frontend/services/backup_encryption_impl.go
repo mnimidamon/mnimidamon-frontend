@@ -8,18 +8,19 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 	"mnimidamonbackend/models"
 	"os"
 	"path/filepath"
 )
 
 var BackupCryptography *backupEncryptionImpl
+
 func init() {
 	BackupCryptography = &backupEncryptionImpl{}
 }
 
-type backupEncryptionImpl struct {}
-
+type backupEncryptionImpl struct{}
 
 func (be *backupEncryptionImpl) Encrypt(payload *models.InitializeGroupBackupPayload, key EncryptionKey, fileData io.ReadCloser, encryptedBytes *int) (*os.File, error) {
 	defer fileData.Close()
@@ -103,7 +104,7 @@ func (be *backupEncryptionImpl) Encrypt(payload *models.InitializeGroupBackupPay
 	}
 
 	// Convert to kilobytes
-	size := fi.Size() / 1024
+	size := int64(math.Ceil(float64(fi.Size()) / 1024.))
 	payload.Size = &size
 
 	return outFile, nil

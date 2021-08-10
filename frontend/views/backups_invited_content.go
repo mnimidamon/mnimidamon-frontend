@@ -345,9 +345,9 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 	readBytes := new(int)
 
 	// Shorten the name if its too long.
-	loaderName := ""
-	if len(*payload.FileName) > 12 {
-		loaderName = (*payload.FileName)[:12] + "..."
+	loaderName := *payload.FileName
+	if len(loaderName) > 15 {
+		loaderName = loaderName[:15] + "..."
 	}
 
 	// New backup loader process for UI.
@@ -364,12 +364,12 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 	events.ProcessStarted.Trigger(bl)
 
 	go func() {
-		// Presave the groupID in case it gets switched up inbetween processing.
-		groupID := viewmodels.SelectedGroup.Model.GroupID
-		global.Log("group id pre init %v", groupID)
-
 		// Remove the process from the parent container.
 		defer bl.RemoveFromParentContainer()
+		defer time.Sleep(time.Second)
+
+		// Presave the groupID in case it gets switched up inbetween processing.
+		groupID := viewmodels.SelectedGroup.Model.GroupID
 
 		// Encrypt and get the encrypted file. Payload will also be populated with the size and the hash.
 		encryptedFile, err := services.BackupCryptography.Encrypt(payload, key, file, readBytes)
@@ -379,8 +379,9 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 		}
 
 		// Defer clean the temp folder of that encrypted file.
-		defer encryptedFile.Close()
 		defer services.BackupStorage.DeleteTempFile(*payload.FileName)
+		defer encryptedFile.Close()
+
 
 		// Encryption is complete.
 		global.Log("encryption complete %v %v", encryptedFile.Name(), payload)
@@ -391,7 +392,7 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 		bl.UpdateInfo("Initializing...")
 		time.Sleep(time.Second * 2)
 
-		global.Log("group id init %v", groupID)
+		global.Log("backup init payload %v", payload)
 
 		// Request the initialization on the server.
 		respInit, err := server.Mnimidamon.Backup.InitializeGroupBackup(&backup.InitializeGroupBackupParams{
@@ -404,7 +405,6 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 		if err != nil {
 			infoDialog(err.Error())
 			bl.UpdateInfo("Initialization error, cancelling.")
-			time.Sleep(time.Second)
 			return
 		}
 
@@ -429,7 +429,6 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 		if err != nil {
 			infoDialog(err.Error())
 			bl.UpdateInfo("Upload error, cancelling.")
-			time.Sleep(time.Second * 2)
 			return
 		}
 
@@ -441,13 +440,11 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 		if err := services.BackupStorage.MoveFromTemp(*payload.FileName, respInit.Payload.BackupID); err != nil {
 			infoDialog(err.Error())
 			bl.UpdateInfo("File moving error, cancelling.")
-			time.Sleep(time.Second * 2)
 			return
 		}
 
 		time.Sleep(time.Second * 1)
 		bl.UpdateInfo("Successful")
-		time.Sleep(time.Second * 2)
 	}()
 }
 

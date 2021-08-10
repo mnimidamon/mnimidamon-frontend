@@ -134,10 +134,10 @@ func (ms *mainScreen) refreshToolbar() {
 
 	switch ms.CurrentContent {
 	case ms.BackupsInvitedContent.Container:
-		_ = ms.ToolbarBind.Set(viewmodels.CurrentUser.Model.Username + "@" + viewmodels.CurrentComputer.Model.Name + "~" + viewmodels.SelectedGroup.Model.Name)
+		_ = ms.ToolbarBind.Set(viewmodels.CurrentUser.Model.Username + " @ " + viewmodels.CurrentComputer.Model.Name + " ~ " + viewmodels.SelectedGroup.Model.Name)
 		break
 	case ms.GroupsInvitationsContent.Container:
-		_ = ms.ToolbarBind.Set(viewmodels.CurrentUser.Model.Username + "@" + viewmodels.CurrentComputer.Model.Name)
+		_ = ms.ToolbarBind.Set(viewmodels.CurrentUser.Model.Username + " @ " + viewmodels.CurrentComputer.Model.Name)
 		break
 	default:
 		_ = ms.ToolbarBind.Set("undefined content")

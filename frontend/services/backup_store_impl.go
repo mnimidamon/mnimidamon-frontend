@@ -74,7 +74,10 @@ func (bs *backupStoreImpl) makeRequiredFolders() error {
 
 func (bs *backupStoreImpl) DeleteTempFile(filename string) {
 	global.Log("deleting file from temp %v", filename)
-	os.Remove(bs.GetTempPath(filename))
+	err := os.Remove(bs.GetTempPath(filename))
+	if err != nil {
+		global.Log("couldn't remove temp file %v", err)
+	}
 }
 
 func (bs *backupStoreImpl) MoveFromTemp(filename string, backupID int64) error {
