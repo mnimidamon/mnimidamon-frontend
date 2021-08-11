@@ -110,7 +110,7 @@ func (be *backupEncryptionImpl) Encrypt(payload *models.InitializeGroupBackupPay
 	return outFile, nil
 }
 
-func (be *backupEncryptionImpl) Decrypt(backup *models.Backup, key EncryptionKey, targetFilePath string) error {
+func (be *backupEncryptionImpl) Decrypt(backup *models.Backup, key EncryptionKey, targetFolder string, decryptedBytes *int) error {
 	// Open the decrypted contents of the file.
 	infile, err := os.Open(BackupStorage.GetBackupPath(int(backup.BackupID)))
 	if err != nil {
@@ -136,12 +136,13 @@ func (be *backupEncryptionImpl) Decrypt(backup *models.Backup, key EncryptionKey
 		return fmt.Errorf("%w getting the initializing vector %v", ErrDecrypting, err)
 	}
 
-	outfile, err := os.OpenFile(filepath.Join(targetFilePath, backup.Filename), os.O_RDWR|os.O_CREATE, 0777)
+	outfile, err := os.OpenFile(filepath.Join(targetFolder, backup.Filename), os.O_RDWR|os.O_CREATE, 0777)
 	if err != nil {
 		return fmt.Errorf("%w opening output file %v", ErrDecrypting, err)
 	}
 	defer outfile.Close()
 
+	*decryptedBytes = 0
 	buf := make([]byte, 1024)
 	stream := cipher.NewCTR(block, iv)
 	for {
@@ -154,10 +155,12 @@ func (be *backupEncryptionImpl) Decrypt(backup *models.Backup, key EncryptionKey
 			msgLen -= int64(n)
 			stream.XORKeyStream(buf, buf[:n])
 			// Write into file
-			_, err := outfile.Write(buf[:n])
+			n, err := outfile.Write(buf[:n])
 			if err != nil {
 				return fmt.Errorf("%w when writting to out file %v", ErrDecrypting, err)
 			}
+
+			*decryptedBytes += n
 		}
 
 		if err == io.EOF {

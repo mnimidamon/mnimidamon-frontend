@@ -80,6 +80,12 @@ func (bs *backupStoreImpl) DeleteTempFile(filename string) {
 	}
 }
 
+func (bs *backupStoreImpl) IsStored(backupID int) bool {
+	if _, err := os.Stat(bs.GetBackupPath(backupID)); err == nil {
+		return true
+	}
+	return false
+}
 func (bs *backupStoreImpl) MoveFromTemp(filename string, backupID int64) error {
 	global.Log("moving file from temp %v", filename)
 

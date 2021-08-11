@@ -70,6 +70,11 @@ var EmailPlusSvg = &fyne.StaticResource{
 	StaticContent: []byte(
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\"><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><path d=\"M19 15V18H16V20H19V23H21V20H24V18H21V15H19M14 18H3V8L11 13L19 8V13H21V6C21 4.9 20.1 4 19 4H3C1.9 4 1 4.9 1 6V18C1 19.1 1.9 20 3 20H14V18M19 6L11 11L3 6H19Z\" /></svg>"),
 }
+var FileLockSvg = &fyne.StaticResource{
+	StaticName: "file-lock.svg",
+	StaticContent: []byte(
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\"><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><path d=\"M14 2H6C4.89 2 4 2.9 4 4V20C4 21.11 4.89 22 6 22H18C19.11 22 20 21.11 20 20V8L14 2M18 20H6V4H13V9H18V20M15 15V14C15 12.34 13.66 11 12 11S9 12.36 9 14V15H8V19H16V15H15M13 15H11V14C11 13.45 11.45 13 12 13S13 13.47 13 14V15Z\" /></svg>"),
+}
 var FolderOpenSvg = &fyne.StaticResource{
 	StaticName: "folder-open.svg",
 	StaticContent: []byte(

@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"io"
 	"mnimidamonbackend/client/backup"
 	"mnimidamonbackend/client/group"
 	"mnimidamonbackend/frontend/events"
@@ -165,13 +166,14 @@ func (c *backupsInvitedContent) DisplayBackupsContent() {
 
 func (c *backupsInvitedContent) rerenderInvitees() {
 	c.mu.Lock()
+	defer c.mu.Unlock()
+	defer c.InvitesListContainer.Refresh()
+
 	global.Log("updating invitees list")
 	c.InvitesListContainer.Objects = []fyne.CanvasObject{}
 
 	if len(viewmodels.GroupInvitees.Models) == 0 {
 		c.InvitesListContainer.Add(NewItalicLabel("There are no pending invites"))
-		c.InvitesListContainer.Refresh()
-		c.mu.Unlock()
 		return
 	}
 
@@ -179,20 +181,19 @@ func (c *backupsInvitedContent) rerenderInvitees() {
 		c.InvitesListContainer.Add(NewInviteeCanvasObject(i))
 	}
 
-	c.InvitesListContainer.Refresh()
-	c.mu.Unlock()
 }
 
 func (c *backupsInvitedContent) rerenderMembers() {
-	global.Log("updating members list")
 
 	c.mu.Lock()
+	defer c.mu.Unlock()
+	defer c.MembersListContainer.Refresh()
+	global.Log("updating members list")
+
 	c.MembersListContainer.Objects = []fyne.CanvasObject{}
 
 	if len(viewmodels.GroupMembers.Models) < 1 {
 		c.MembersListContainer.Add(NewItalicLabel("loading..."))
-		c.MembersListContainer.Refresh()
-		c.mu.Unlock()
 		return
 	}
 
@@ -203,9 +204,6 @@ func (c *backupsInvitedContent) rerenderMembers() {
 	for _, m := range viewmodels.GroupMembers.Models {
 		c.MembersListContainer.Add(NewMemberCanvasObject(m))
 	}
-
-	c.MembersListContainer.Refresh()
-	c.mu.Unlock()
 }
 
 func (c *backupsInvitedContent) DisplayMembersContent() {
@@ -217,12 +215,13 @@ func (c *backupsInvitedContent) rerenderBackups() {
 	global.Log("updating backups list")
 
 	c.mu.Lock()
+	defer c.mu.Unlock()
+	defer c.BackupsListContainer.Refresh()
+
 	c.BackupsListContainer.Objects = []fyne.CanvasObject{}
 
 	if len(viewmodels.Backups.Models) == 0 {
 		c.BackupsListContainer.Add(NewItalicLabel("There are no backups in this group"))
-		c.BackupsListContainer.Refresh()
-		c.mu.Unlock()
 		return
 	}
 
@@ -230,39 +229,6 @@ func (c *backupsInvitedContent) rerenderBackups() {
 		c.BackupsListContainer.Add(NewBackupCanvasObject(b))
 	}
 
-	c.BackupsListContainer.Refresh()
-	c.mu.Unlock()
-}
-
-func NewBackupCanvasObject(b *models.Backup) fyne.CanvasObject {
-	return widget.NewLabel(b.Filename)
-}
-
-func NewMemberCanvasObject(m *models.User) fyne.CanvasObject {
-	return container.NewVBox(
-		widget.NewLabelWithStyle(m.Username, fyne.TextAlignLeading, fyne.TextStyle{}),
-		NewComputersCanvasObject(m.UserID),
-	)
-}
-
-func NewComputersCanvasObject(userID int64) fyne.CanvasObject {
-	c := container.NewVBox()
-
-	for _, gc := range viewmodels.GroupComputers.GetAllOf(userID) {
-		c.Add(NewGroupComputerCanvasObject(gc))
-	}
-
-	return c
-}
-
-func NewGroupComputerCanvasObject(gc *models.GroupComputer) fyne.CanvasObject {
-	return widget.NewLabel(fmt.Sprintf("   %v  \t%vMB", gc.Computer.Name, gc.StorageSize/1024))
-}
-
-func NewInviteeCanvasObject(i *models.Invite) fyne.CanvasObject {
-	return container.NewHBox(
-		widget.NewLabel(fmt.Sprintf("%v @ %v", i.User.Username, i.Date)),
-	)
 }
 
 func (c *backupsInvitedContent) dialogCreateNewBackup() {
@@ -316,9 +282,103 @@ func (c *backupsInvitedContent) dialogCreateNewBackup() {
 			}
 		}, global.MainWindow).Show()
 }
+func dialogDecryptBackup(backup *models.Backup) {
+	var key services.EncryptionKey
+	keyEntry := widget.NewEntry()
+	keyEntry.SetPlaceHolder("decryption key...")
+	keyEntry.Validator = func(s string) error {
+		byteKey, err := hex.DecodeString(s)
+		if err != nil {
+			global.Log("decoding string to bytes key %v", err)
+			return errors.New("should be of hex representation")
+		}
+
+		if len(byteKey) != 32 {
+			return errors.New("should be length of 32 bytes")
+		}
+
+		key = byteKey
+		return nil
+	}
+
+	// File entry.
+	targetFolder := widget.NewEntry()
+	targetFolder.SetPlaceHolder("")
+	targetFolder.Validator = func(s string) error {
+		if _, err := os.Stat(s); os.IsNotExist(err) {
+			return errors.New("folder does not exist")
+		}
+		return nil
+	}
+
+	// The dialog to get the file selection.
+	selectFolderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
+		if uri != nil {
+			targetFolder.SetText(uri.Path())
+		}
+	}, global.MainWindow)
+
+	// Button for file selection dialog show.
+	buttonSelectFolder := widget.NewButtonWithIcon("Select folder", resources.FolderOpenSvg, func() {
+		selectFolderDialog.Show()
+	})
+
+	// Combined dialog for creating new backup.
+	name := backup.Filename
+	dialog.NewForm("Decrypt backup " + name, "Decrypt", "Cancel",
+		[]*widget.FormItem{
+			widget.NewFormItem("Folder", targetFolder),
+			widget.NewFormItem("", buttonSelectFolder),
+			widget.NewFormItem("Decryption key", keyEntry),
+		}, func(b bool) {
+			if b {
+				targetFolder := targetFolder.Text
+				global.Log("requested backup creation of %v", targetFolder)
+
+				// Start the procedure.
+				// TODO....
+				go DecryptProcedure(backup, key, targetFolder)
+			}
+		}, global.MainWindow).Show()
+}
+
+func DecryptProcedure(b *models.Backup, key services.EncryptionKey, targetFolder string) {
+	// Number of bytes encrypted.
+	numDecrypted := new(int)
+
+	// Shorten the name if its too long.
+	loaderName := b.Filename
+	if len(loaderName) > 15 {
+		loaderName = loaderName[:15] + "..."
+	}
+
+	// New backup loader process for UI.
+	bl := NewBackupLoaderProcess(loaderName, func() string {
+		percentage := int(float64(*numDecrypted) / float64(b.Size * 1024) * 100)
+		if percentage == 100 {
+			return "Decrypted"
+		}
+		return "Decrypting " + strconv.Itoa(percentage) + "%"
+	})
+
+	// Inform about a new process.
+	events.ProcessStarted.Trigger(bl)
+	defer bl.RemoveFromParentContainer()
+	defer time.Sleep(time.Second * 2)
+
+	err := services.BackupCryptography.Decrypt(b, key, targetFolder, numDecrypted)
+	bl.StopRefreshing()
+	if err != nil {
+		infoDialog("error decrypting " + err.Error())
+		bl.UpdateInfo("Failed")
+		return
+	}
+
+	time.Sleep(time.Second)
+	bl.UpdateInfo("Done")
+}
 
 func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.EncryptionKey) {
-
 	// Open the file.
 	file, err := os.Open(path)
 	if err != nil {
@@ -357,7 +417,7 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 		if percentage == 100 {
 			return "Encrypted"
 		}
-		return "Encrypting " + strconv.Itoa(percentage) + "% ..."
+		return "Encrypting " + strconv.Itoa(percentage) + "%"
 	})
 
 	// Inform about a new process.
@@ -382,23 +442,22 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 		defer services.BackupStorage.DeleteTempFile(*payload.FileName)
 		defer encryptedFile.Close()
 
-
 		// Encryption is complete.
 		global.Log("encryption complete %v %v", encryptedFile.Name(), payload)
 
 		// Start the backup initialization on the server.
 		bl.StopRefreshing()
 		time.Sleep(time.Second)
-		bl.UpdateInfo("Initializing...")
+		bl.UpdateInfo("Initializing")
 		time.Sleep(time.Second * 2)
 
 		global.Log("backup init payload %v", payload)
 
 		// Request the initialization on the server.
 		respInit, err := server.Mnimidamon.Backup.InitializeGroupBackup(&backup.InitializeGroupBackupParams{
-			Body:       payload,
-			GroupID:    groupID,
-			Context:    server.ApiContext,
+			Body:    payload,
+			GroupID: groupID,
+			Context: server.ApiContext,
 		}, viewmodels.CurrentComputer.Auth)
 
 		// Check if error occurred.
@@ -408,14 +467,22 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 			return
 		}
 
-
 		bl.UpdateInfo("Initialized")
-		time.Sleep(time.Second * 2)
-		bl.UpdateInfo("Uploading...")
+		time.Sleep(time.Second * 1)
 		global.Log("backup init response %v", respInit.Payload)
 
-		// Add it to the view models.
-		viewmodels.Backups.Add(respInit.Payload)
+		// Refresher for uploading.
+		bl.refresher = func() string {
+			offset, err := encryptedFile.Seek(0, io.SeekCurrent)
+
+			percentage := int(float64(offset) / float64(fi.Size()) * 100)
+			if percentage == 100 || err != nil {
+				return "Uploaded"
+			}
+
+			return "Uploading " + strconv.Itoa(percentage) + "%"
+		}
+		bl.StartRefreshing()
 
 		// Upload it to the server.
 		respUpload, err := server.Mnimidamon.Backup.UploadBackup(&backup.UploadBackupParams{
@@ -425,15 +492,24 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 			Context:    server.ApiContext,
 		}, viewmodels.CurrentComputer.Auth)
 
-
 		if err != nil {
 			infoDialog(err.Error())
 			bl.UpdateInfo("Upload error, cancelling.")
+			resp, err := server.Mnimidamon.Backup.InitializeGroupBackupDeletion(&backup.InitializeGroupBackupDeletionParams{
+				BackupID: respInit.Payload.BackupID,
+				GroupID:  groupID,
+				Context:  server.ApiContext,
+			}, viewmodels.CurrentComputer.Auth)
+			if err != nil {
+				global.Log("failed to delete initialized %v", err)
+			} else {
+				global.Log("successful delete of initialized %v", resp)
+			}
 			return
 		}
 
+		bl.StopRefreshing()
 		time.Sleep(time.Second * 1)
-		bl.UpdateInfo("Uploaded")
 		global.Log("upload response %v", respUpload.Payload)
 
 		// Move the file from the temp folder to the main folder.
@@ -443,8 +519,9 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 			return
 		}
 
-		time.Sleep(time.Second * 1)
-		bl.UpdateInfo("Successful")
+		// Add it to the view models.
+		viewmodels.Backups.Add(respInit.Payload)
+		bl.UpdateInfo("Done")
 	}()
 }
 
@@ -487,6 +564,72 @@ func inviteUserToGroup(name string) {
 		// Add the created invitations to the group invitees.
 		viewmodels.GroupInvitees.Add(resp.Payload)
 	}()
+}
+
+func NewBackupCanvasObject(b *models.Backup) fyne.CanvasObject {
+	infoLayout := container.NewHBox()
+
+	sizeString := ""
+	if b.Size > 1023 {
+		sizeString = fmt.Sprintf("%v MB", b.Size / 1024)
+	} else {
+		sizeString = fmt.Sprintf("%v KB", b.Size)
+	}
+
+	infoLayout.Add(widget.NewLabel(sizeString))
+
+	toolbar := widget.NewToolbar()
+
+	// If it's the backup owner.
+	if b.OwnerID == viewmodels.CurrentUser.Model.UserID {
+		// If it's stored locally. Show an option to decrypt it.
+		if services.BackupStorage.IsStored(int(b.BackupID)) {
+			toolbar.Append(widget.NewToolbarAction(resources.FileLockSvg, func() {
+				dialogDecryptBackup(b)
+			}))
+		} else {
+			infoLayout.Add(widget.NewLabel("not downloaded"))
+		}
+
+		// Add the delete option.
+		toolbar.Append(widget.NewToolbarAction(resources.TrashDeleteSvg, func() {
+			global.Log("requested to delete %v", b.BackupID)
+		}))
+	}
+
+	return container.NewHBox(
+		widget.NewLabel(b.Filename),
+		layout.NewSpacer(),
+		toolbar,
+		infoLayout,
+	)
+}
+
+func NewMemberCanvasObject(m *models.User) fyne.CanvasObject {
+	return container.NewVBox(
+		widget.NewLabelWithStyle(m.Username, fyne.TextAlignLeading, fyne.TextStyle{}),
+		NewComputersCanvasObject(m.UserID),
+	)
+}
+
+func NewComputersCanvasObject(userID int64) fyne.CanvasObject {
+	c := container.NewVBox()
+
+	for _, gc := range viewmodels.GroupComputers.GetAllOf(userID) {
+		c.Add(NewGroupComputerCanvasObject(gc))
+	}
+
+	return c
+}
+
+func NewGroupComputerCanvasObject(gc *models.GroupComputer) fyne.CanvasObject {
+	return widget.NewLabel(fmt.Sprintf("   %v  \t%vMB", gc.Computer.Name, gc.StorageSize/1024))
+}
+
+func NewInviteeCanvasObject(i *models.Invite) fyne.CanvasObject {
+	return container.NewHBox(
+		widget.NewLabel(fmt.Sprintf("%v @ %v", i.User.Username, i.Date)),
+	)
 }
 
 func NewItalicLabel(msg string) *widget.Label {
