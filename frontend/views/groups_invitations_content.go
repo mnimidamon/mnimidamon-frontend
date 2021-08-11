@@ -28,8 +28,11 @@ func NewGroupAndInvitationsContent(processContainer fyne.CanvasObject) *groupsIn
 	// Base toolbar elements.
 	groupLabel := widget.NewLabelWithStyle("groups", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	inviteLabel := widget.NewLabelWithStyle("invites", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	computersLabel := widget.NewLabelWithStyle("computers", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+
 	groupToolbarLabel := fragments.NewToolbarObject(groupLabel)
 	inviteToolbarLabel := fragments.NewToolbarObject(inviteLabel)
+	computersToolbarLabel := fragments.NewToolbarObject(computersLabel)
 
 	// For reference.
 	var gilc *groupsInvitationsContent
@@ -56,6 +59,15 @@ func NewGroupAndInvitationsContent(processContainer fyne.CanvasObject) *groupsIn
 		}),
 	)
 
+	// Invite Toolbar.
+	computersToolbar := widget.NewToolbar(
+		computersToolbarLabel,
+		widget.NewToolbarSpacer(),
+		widget.NewToolbarAction(resources.SyncSvg, func() {
+			viewmodels.Computers.GetAll()
+		}),
+	)
+
 	// Left navigation.
 	leftNavigation := container.NewVBox(
 		widget.NewButtonWithIcon("groups", resources.GroupsSvg, func() {
@@ -64,11 +76,15 @@ func NewGroupAndInvitationsContent(processContainer fyne.CanvasObject) *groupsIn
 		widget.NewButtonWithIcon("invites", resources.MailboxUpSvg, func() {
 			gilc.DisplayInvitesContent()
 		}),
+		widget.NewButtonWithIcon("computers", resources.ClipboardEditSvg, func() {
+			gilc.DisplayComputersContent()
+		}),
 	)
 
 	// Right list content.
 	groupListContainer := container.NewVBox(NewItalicLabel("loading..."))
 	inviteListContainer := container.NewVBox(NewItalicLabel("loading..."))
+	computersListContainer := container.NewVBox(NewItalicLabel("loading..."))
 
 	// The center content.
 	rightContent := container.NewMax()
@@ -81,11 +97,15 @@ func NewGroupAndInvitationsContent(processContainer fyne.CanvasObject) *groupsIn
 		LeftNavigation: leftNavigation,
 		RightContent:   rightContent,
 
-		GroupRightContent:  container.NewBorder(groupToolbar, processContainer, nil, nil, container.NewVScroll(container.NewPadded(groupListContainer))),
-		InviteRightContent: container.NewBorder(inviteToolbar, processContainer, nil, nil, container.NewVScroll(container.NewPadded(inviteListContainer))),
+		GroupRightContent:     container.NewBorder(groupToolbar, processContainer, nil, nil, container.NewVScroll(container.NewPadded(groupListContainer))),
+		InviteRightContent:    container.NewBorder(inviteToolbar, processContainer, nil, nil, container.NewVScroll(container.NewPadded(inviteListContainer))),
+		ComputersRightContent: container.NewBorder(computersToolbar, processContainer, nil, nil, container.NewVScroll(container.NewPadded(computersListContainer))),
 
-		GroupListContainer:  groupListContainer,
-		InviteListContainer: inviteListContainer,
+		GroupListContainer:     groupListContainer,
+		InviteListContainer:    inviteListContainer,
+		ComputersListContainer: computersListContainer,
+
+		mu: sync.Mutex{},
 	}
 
 	// Default content is groups.
@@ -94,6 +114,7 @@ func NewGroupAndInvitationsContent(processContainer fyne.CanvasObject) *groupsIn
 	// Register listeners.
 	events.GroupsUpdated.Register(gilc)
 	events.InvitesUpdated.Register(gilc)
+	events.ComputersUpdated.Register(gilc)
 	events.CurrentComputerGroupComputersUpdated.Register(gilc)
 
 	// Resize it to look somewhat better.
@@ -110,13 +131,19 @@ type groupsInvitationsContent struct {
 	LeftNavigation *fyne.Container // Left split content.
 	RightContent   *fyne.Container // Right split content.
 
-	GroupRightContent  *fyne.Container // Content displayed upon Invite navigation.
-	InviteRightContent *fyne.Container // Content displayed upon Group navigation.
+	GroupRightContent     *fyne.Container // Content displayed upon Invite navigation.
+	InviteRightContent    *fyne.Container // Content displayed upon Group navigation.
+	ComputersRightContent *fyne.Container // Content displayed upon computers navigation.
 
-	GroupListContainer  *fyne.Container // Containing the group list.
-	InviteListContainer *fyne.Container // Containing the invite group list.
+	GroupListContainer     *fyne.Container // Containing the group list.
+	InviteListContainer    *fyne.Container // Containing the invite group list.
+	ComputersListContainer *fyne.Container // Containing the  computers list.
 
 	mu sync.Mutex // Lock when rendering UI elements.
+}
+
+func (c *groupsInvitationsContent) HandleComputersUpdated() {
+	c.rerenderComputers()
 }
 
 func (c *groupsInvitationsContent) HandleGroupComputersUpdated() {
@@ -180,7 +207,7 @@ func (c *groupsInvitationsContent) rerenderGroups() {
 		c.GroupListContainer.Add(NewEnterGroupCanvasObject(g))
 	}
 
-	if len(isNotMember) > 0 && len(isMember) > 0{
+	if len(isNotMember) > 0 && len(isMember) > 0 {
 		separator := container.NewHBox(
 			layout.NewSpacer(),
 			widget.NewLabelWithStyle("· · ·", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
@@ -197,12 +224,26 @@ func (c *groupsInvitationsContent) rerenderGroups() {
 	c.mu.Unlock()
 }
 
+func (c *groupsInvitationsContent) rerenderComputers() {
+	c.mu.Lock()
+	global.Log("updating computers list")
+	defer c.mu.Unlock()
+	defer c.ComputersListContainer.Refresh()
+
+	c.ComputersListContainer.Objects = []fyne.CanvasObject{}
+}
+
 func (c *groupsInvitationsContent) DisplayGroupsContent() {
 	c.RightContent.Objects = []fyne.CanvasObject{c.GroupRightContent}
 	c.RightContent.Refresh()
 }
 func (c *groupsInvitationsContent) DisplayInvitesContent() {
 	c.RightContent.Objects = []fyne.CanvasObject{c.InviteRightContent}
+	c.RightContent.Refresh()
+}
+
+func (c *groupsInvitationsContent) DisplayComputersContent() {
+	c.RightContent.Objects = []fyne.CanvasObject{c.ComputersRightContent}
 	c.RightContent.Refresh()
 }
 
@@ -272,7 +313,7 @@ func DialogJoinComputerToGroup(group *models.Group) {
 			if b {
 				size, _ := size.Get()
 				// Convert to KB
-				JoinComputerToGroup(size * 1024, group)
+				JoinComputerToGroup(size*1024, group)
 			}
 		}, global.MainWindow).Show()
 }
@@ -280,11 +321,11 @@ func DialogJoinComputerToGroup(group *models.Group) {
 func JoinComputerToGroup(size int, group *models.Group) {
 	go func() {
 		resp, err := server.Mnimidamon.GroupComputer.JoinComputerToGroup(&group_computer.JoinComputerToGroupParams{
-			Body:      	&models.CreateGroupComputerPayload{
+			Body: &models.CreateGroupComputerPayload{
 				Size: int64(size),
 			},
-			GroupID:    group.GroupID,
-			Context:    server.ApiContext,
+			GroupID: group.GroupID,
+			Context: server.ApiContext,
 		}, viewmodels.CurrentComputer.Auth)
 
 		// Display the error.
@@ -306,8 +347,8 @@ func AcceptInvite(i *models.Invite) {
 	// Accept the invite and add the group to the group view model.
 	go func() {
 		resp, err := server.Mnimidamon.Invite.AcceptCurrentUserInvite(&invite.AcceptCurrentUserInviteParams{
-			GroupID:    i.Group.GroupID,
-			Context:    server.ApiContext,
+			GroupID: i.Group.GroupID,
+			Context: server.ApiContext,
 		}, viewmodels.CurrentComputer.Auth)
 
 		if err != nil {
@@ -325,8 +366,8 @@ func DeclineInvite(i *models.Invite) {
 	// Decline the invite and remove it from the invite view model.
 	go func() {
 		_, err := server.Mnimidamon.Invite.DeclineCurrentUserInvite(&invite.DeclineCurrentUserInviteParams{
-			GroupID:    i.Group.GroupID,
-			Context:    server.ApiContext,
+			GroupID: i.Group.GroupID,
+			Context: server.ApiContext,
 		}, viewmodels.CurrentComputer.Auth)
 
 		if err != nil {
