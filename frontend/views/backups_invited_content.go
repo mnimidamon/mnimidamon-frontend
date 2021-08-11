@@ -173,7 +173,7 @@ func (c *backupsInvitedContent) rerenderInvitees() {
 	c.InvitesListContainer.Objects = []fyne.CanvasObject{}
 
 	if len(viewmodels.GroupInvitees.Models) == 0 {
-		c.InvitesListContainer.Add(NewItalicLabel("There are no pending invites"))
+		c.InvitesListContainer.Add(NewItalicLabel("There are no pending invites."))
 		return
 	}
 
@@ -198,7 +198,7 @@ func (c *backupsInvitedContent) rerenderMembers() {
 	}
 
 	if len(viewmodels.GroupMembers.Models) == 1 {
-		c.MembersListContainer.Add(NewItalicLabel("You are the only member of the group"))
+		c.MembersListContainer.Add(NewItalicLabel("You are the only member of the group."))
 	}
 
 	for _, m := range viewmodels.GroupMembers.Models {
@@ -221,7 +221,7 @@ func (c *backupsInvitedContent) rerenderBackups() {
 	c.BackupsListContainer.Objects = []fyne.CanvasObject{}
 
 	if len(viewmodels.Backups.Models) == 0 {
-		c.BackupsListContainer.Add(NewItalicLabel("There are no backups in this group"))
+		c.BackupsListContainer.Add(NewItalicLabel("There are no backups in this group."))
 		return
 	}
 
@@ -360,11 +360,12 @@ func BackupDeletionDialog(b *models.Backup) {
 	dialog.NewConfirm("Confirm deletion of " + b.Filename, "This action will permanently delete this backup.", func(confirmed bool) {
 		if confirmed {
 			go func() {
-				b, err := DeleteProcedure(b)
+				err := DeleteProcedure(b)
 				if err != nil {
 					infoDialog(err.Error())
 					return
 				}
+
 				if b != nil {
 					viewmodels.Backups.Remove(b)
 					services.BackupStorage.DeleteBackup(int(b.BackupID))
@@ -374,7 +375,7 @@ func BackupDeletionDialog(b *models.Backup) {
 	}, global.MainWindow).Show()
 }
 
-func DeleteProcedure(b *models.Backup) (*models.Backup, error) {
+func DeleteProcedure(b *models.Backup) error {
 	resp, err := server.Mnimidamon.Backup.InitializeGroupBackupDeletion(&backup.InitializeGroupBackupDeletionParams{
 		BackupID: b.BackupID,
 		GroupID:  b.GroupID,
@@ -383,11 +384,11 @@ func DeleteProcedure(b *models.Backup) (*models.Backup, error) {
 
 	if err != nil {
 		global.Log("failed to delete initialized %v", err)
-		return nil, err
+		return err
 	}
 
 	global.Log("successful delete response %v", resp)
-	return resp.Payload, nil
+	return nil
 }
 
 func DecryptProcedure(b *models.Backup, key services.EncryptionKey, targetFolder string) {
@@ -647,11 +648,11 @@ func NewBackupCanvasObject(b *models.Backup) fyne.CanvasObject {
 func NewMemberCanvasObject(m *models.User) fyne.CanvasObject {
 	return container.NewVBox(
 		widget.NewLabelWithStyle(m.Username, fyne.TextAlignLeading, fyne.TextStyle{}),
-		NewComputersCanvasObject(m.UserID),
+		NewGroupComputersCanvasObject(m.UserID),
 	)
 }
 
-func NewComputersCanvasObject(userID int64) fyne.CanvasObject {
+func NewGroupComputersCanvasObject(userID int64) fyne.CanvasObject {
 	c := container.NewVBox()
 
 	for _, gc := range viewmodels.GroupComputers.GetAllOf(userID) {
@@ -672,7 +673,10 @@ func NewInviteeCanvasObject(i *models.Invite) fyne.CanvasObject {
 }
 
 func NewItalicLabel(msg string) *widget.Label {
-	return widget.NewLabelWithStyle(msg, fyne.TextAlignLeading, fyne.TextStyle{Italic: true})
+	l := widget.NewLabelWithStyle(msg, fyne.TextAlignLeading, fyne.TextStyle{Italic: true})
+	l.Wrapping = fyne.TextWrapWord
+
+	return l
 }
 
 func NewBackupLoaderProcess(name string, refresher func() string) *BackupLoaderProcess {

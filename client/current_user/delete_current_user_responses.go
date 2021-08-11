@@ -23,8 +23,8 @@ type DeleteCurrentUserReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *DeleteCurrentUserReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-	case 202:
-		result := NewDeleteCurrentUserAccepted()
+	case 204:
+		result := NewDeleteCurrentUserNoContent()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -46,23 +46,23 @@ func (o *DeleteCurrentUserReader) ReadResponse(response runtime.ClientResponse, 
 	}
 }
 
-// NewDeleteCurrentUserAccepted creates a DeleteCurrentUserAccepted with default headers values
-func NewDeleteCurrentUserAccepted() *DeleteCurrentUserAccepted {
-	return &DeleteCurrentUserAccepted{}
+// NewDeleteCurrentUserNoContent creates a DeleteCurrentUserNoContent with default headers values
+func NewDeleteCurrentUserNoContent() *DeleteCurrentUserNoContent {
+	return &DeleteCurrentUserNoContent{}
 }
 
-/* DeleteCurrentUserAccepted describes a response with status code 202, with default header values.
+/* DeleteCurrentUserNoContent describes a response with status code 204, with default header values.
 
 Successfuly deleted current user account.
 */
-type DeleteCurrentUserAccepted struct {
+type DeleteCurrentUserNoContent struct {
 }
 
-func (o *DeleteCurrentUserAccepted) Error() string {
-	return fmt.Sprintf("[DELETE /users/current][%d] deleteCurrentUserAccepted ", 202)
+func (o *DeleteCurrentUserNoContent) Error() string {
+	return fmt.Sprintf("[DELETE /users/current][%d] deleteCurrentUserNoContent ", 204)
 }
 
-func (o *DeleteCurrentUserAccepted) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *DeleteCurrentUserNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

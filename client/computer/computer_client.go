@@ -30,6 +30,8 @@ type ClientOption func(*runtime.ClientOperation)
 
 // ClientService is the interface for Client methods
 type ClientService interface {
+	DeleteComputer(params *DeleteComputerParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteComputerNoContent, error)
+
 	GetBackupLocations(params *GetBackupLocationsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetBackupLocationsOK, error)
 
 	GetCurrentComputer(params *GetCurrentComputerParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetCurrentComputerOK, error)
@@ -41,6 +43,47 @@ type ClientService interface {
 	GetCurrentUserGroupComputers(params *GetCurrentUserGroupComputersParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetCurrentUserGroupComputersOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
+}
+
+/*
+  DeleteComputer deletes a computer
+
+  Deletes the computer with its group memberships
+*/
+func (a *Client) DeleteComputer(params *DeleteComputerParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteComputerNoContent, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteComputerParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "deleteComputer",
+		Method:             "DELETE",
+		PathPattern:        "/users/current/computers/{computer_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &DeleteComputerReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*DeleteComputerNoContent)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for deleteComputer: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*

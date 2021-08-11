@@ -67,7 +67,7 @@ type InitializeGroupBackupParams struct {
 
 	/* GroupID.
 
-	   Numeric ID of the Model.
+	   Numeric ID of the Group.
 	*/
 	GroupID int64
 

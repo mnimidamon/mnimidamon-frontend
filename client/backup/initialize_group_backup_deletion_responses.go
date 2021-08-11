@@ -23,8 +23,8 @@ type InitializeGroupBackupDeletionReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *InitializeGroupBackupDeletionReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-	case 202:
-		result := NewInitializeGroupBackupDeletionAccepted()
+	case 204:
+		result := NewInitializeGroupBackupDeletionNoContent()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -52,34 +52,23 @@ func (o *InitializeGroupBackupDeletionReader) ReadResponse(response runtime.Clie
 	}
 }
 
-// NewInitializeGroupBackupDeletionAccepted creates a InitializeGroupBackupDeletionAccepted with default headers values
-func NewInitializeGroupBackupDeletionAccepted() *InitializeGroupBackupDeletionAccepted {
-	return &InitializeGroupBackupDeletionAccepted{}
+// NewInitializeGroupBackupDeletionNoContent creates a InitializeGroupBackupDeletionNoContent with default headers values
+func NewInitializeGroupBackupDeletionNoContent() *InitializeGroupBackupDeletionNoContent {
+	return &InitializeGroupBackupDeletionNoContent{}
 }
 
-/* InitializeGroupBackupDeletionAccepted describes a response with status code 202, with default header values.
+/* InitializeGroupBackupDeletionNoContent describes a response with status code 204, with default header values.
 
-The specified backup is logged to be deleted.
+Successuful backup deletion.
 */
-type InitializeGroupBackupDeletionAccepted struct {
-	Payload *models.Backup
+type InitializeGroupBackupDeletionNoContent struct {
 }
 
-func (o *InitializeGroupBackupDeletionAccepted) Error() string {
-	return fmt.Sprintf("[DELETE /users/current/computers/current/groups/{group_id}/backups/{backup_id}][%d] initializeGroupBackupDeletionAccepted  %+v", 202, o.Payload)
-}
-func (o *InitializeGroupBackupDeletionAccepted) GetPayload() *models.Backup {
-	return o.Payload
+func (o *InitializeGroupBackupDeletionNoContent) Error() string {
+	return fmt.Sprintf("[DELETE /users/current/computers/current/groups/{group_id}/backups/{backup_id}][%d] initializeGroupBackupDeletionNoContent ", 204)
 }
 
-func (o *InitializeGroupBackupDeletionAccepted) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Backup)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
+func (o *InitializeGroupBackupDeletionNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

@@ -30,7 +30,7 @@ type ClientOption func(*runtime.ClientOperation)
 
 // ClientService is the interface for Client methods
 type ClientService interface {
-	DeleteCurrentUser(params *DeleteCurrentUserParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteCurrentUserAccepted, error)
+	DeleteCurrentUser(params *DeleteCurrentUserParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteCurrentUserNoContent, error)
 
 	GetCurrentUser(params *GetCurrentUserParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetCurrentUserOK, error)
 
@@ -44,7 +44,7 @@ type ClientService interface {
 /*
   DeleteCurrentUser deletes current user account
 */
-func (a *Client) DeleteCurrentUser(params *DeleteCurrentUserParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteCurrentUserAccepted, error) {
+func (a *Client) DeleteCurrentUser(params *DeleteCurrentUserParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteCurrentUserNoContent, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewDeleteCurrentUserParams()
@@ -70,7 +70,7 @@ func (a *Client) DeleteCurrentUser(params *DeleteCurrentUserParams, authInfo run
 	if err != nil {
 		return nil, err
 	}
-	success, ok := result.(*DeleteCurrentUserAccepted)
+	success, ok := result.(*DeleteCurrentUserNoContent)
 	if ok {
 		return success, nil
 	}

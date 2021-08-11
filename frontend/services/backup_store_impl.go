@@ -85,6 +85,8 @@ func (bs *backupStoreImpl) DeleteBackup(backupID int) {
 	err := os.Remove(bs.GetBackupPath(backupID))
 	if err != nil {
 		global.Log("couldn't remove backup file %v, %v", backupID, err)
+	} else {
+		global.Log("deleted backup file %v", backupID)
 	}
 }
 

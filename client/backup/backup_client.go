@@ -39,7 +39,7 @@ type ClientService interface {
 
 	InitializeGroupBackup(params *InitializeGroupBackupParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*InitializeGroupBackupOK, error)
 
-	InitializeGroupBackupDeletion(params *InitializeGroupBackupDeletionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*InitializeGroupBackupDeletionAccepted, error)
+	InitializeGroupBackupDeletion(params *InitializeGroupBackupDeletionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*InitializeGroupBackupDeletionNoContent, error)
 
 	LogComputerBackup(params *LogComputerBackupParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*LogComputerBackupOK, error)
 
@@ -207,11 +207,11 @@ func (a *Client) InitializeGroupBackup(params *InitializeGroupBackupParams, auth
 }
 
 /*
-  InitializeGroupBackupDeletion initializes a backup deletion
+  InitializeGroupBackupDeletion deletes a backup deletion
 
   If the current user is the owner of the backup then it initializes backup deletion otherwise deletes the logged local computer backup of the current computer.
 */
-func (a *Client) InitializeGroupBackupDeletion(params *InitializeGroupBackupDeletionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*InitializeGroupBackupDeletionAccepted, error) {
+func (a *Client) InitializeGroupBackupDeletion(params *InitializeGroupBackupDeletionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*InitializeGroupBackupDeletionNoContent, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewInitializeGroupBackupDeletionParams()
@@ -237,7 +237,7 @@ func (a *Client) InitializeGroupBackupDeletion(params *InitializeGroupBackupDele
 	if err != nil {
 		return nil, err
 	}
-	success, ok := result.(*InitializeGroupBackupDeletionAccepted)
+	success, ok := result.(*InitializeGroupBackupDeletionNoContent)
 	if ok {
 		return success, nil
 	}

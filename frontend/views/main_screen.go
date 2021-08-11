@@ -147,7 +147,17 @@ func (ms *mainScreen) refreshToolbar() {
 func showLogOutDialog() {
 	dialog.NewConfirm("Are you sure?", fmt.Sprintf("This will delete the computer %v and its backups.", services.ConfigurationStore.GetConfig().Computer.Name), func(b bool) {
 		if b {
-			events.RestartConfiguration.Trigger()
+			// Delete this computer.
+			go func() {
+				if err := DeleteComputerProcedure(&viewmodels.CurrentComputer.Model.Computer); err != nil{
+					infoDialog(err.Error())
+					return
+				}
+
+				// Navigate to the start if successful.
+				events.RequestGroupsContent.Trigger()
+				events.RestartConfiguration.Trigger()
+			}()
 		}
 	}, global.MainWindow).Show()
 }

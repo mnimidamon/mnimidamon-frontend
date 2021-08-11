@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"mnimidamonbackend/client/computer"
 	"mnimidamonbackend/client/group"
 	"mnimidamonbackend/client/group_computer"
 	"mnimidamonbackend/client/invite"
@@ -76,7 +77,7 @@ func NewGroupAndInvitationsContent(processContainer fyne.CanvasObject) *groupsIn
 		widget.NewButtonWithIcon("invites", resources.MailboxUpSvg, func() {
 			gilc.DisplayInvitesContent()
 		}),
-		widget.NewButtonWithIcon("computers", resources.ClipboardEditSvg, func() {
+		widget.NewButtonWithIcon("computers", resources.DesktopClassicSvg, func() {
 			gilc.DisplayComputersContent()
 		}),
 	)
@@ -160,35 +161,32 @@ func (c *groupsInvitationsContent) HandleInvitesUpdate() {
 
 func (c *groupsInvitationsContent) rerenderInvites() {
 	c.mu.Lock()
-
+	defer c.InviteListContainer.Refresh()
+	defer c.mu.Unlock()
 	global.Log("updating invites list")
 	c.InviteListContainer.Objects = []fyne.CanvasObject{}
 
 	if len(viewmodels.Invites.Models) == 0 {
-		c.InviteListContainer.Add(NewItalicLabel("You have no pending invites"))
-		c.InviteListContainer.Refresh()
-		c.mu.Unlock()
+		c.InviteListContainer.Add(NewItalicLabel("You have no pending invites."))
 		return
 	}
 
 	for _, i := range viewmodels.Invites.Models {
 		c.InviteListContainer.Add(NewInviteCanvasObject(i))
 	}
-
-	c.InviteListContainer.Refresh()
-	c.mu.Unlock()
 }
 
 func (c *groupsInvitationsContent) rerenderGroups() {
 	c.mu.Lock()
+	defer c.mu.Unlock()
+	defer c.GroupListContainer.Refresh()
+
 	global.Log("updating groups list")
 	c.GroupListContainer.Objects = []fyne.CanvasObject{}
 
 	// If there are no groups.
 	if len(viewmodels.Groups.Models) == 0 {
-		c.GroupListContainer.Add(NewItalicLabel("Create a group or accept an invite"))
-		c.GroupListContainer.Refresh()
-		c.mu.Unlock()
+		c.GroupListContainer.Add(NewItalicLabel("Create a group or accept an invite."))
 		return
 	}
 
@@ -219,9 +217,6 @@ func (c *groupsInvitationsContent) rerenderGroups() {
 	for _, g := range isNotMember {
 		c.GroupListContainer.Add(NewJoinGroupCanvasObject(g))
 	}
-
-	c.GroupListContainer.Refresh()
-	c.mu.Unlock()
 }
 
 func (c *groupsInvitationsContent) rerenderComputers() {
@@ -231,6 +226,19 @@ func (c *groupsInvitationsContent) rerenderComputers() {
 	defer c.ComputersListContainer.Refresh()
 
 	c.ComputersListContainer.Objects = []fyne.CanvasObject{}
+
+	if len(viewmodels.Computers.Models) == 1 {
+		l := NewItalicLabel("Currently logged in computer is the only computer registered to this account.")
+		c.ComputersListContainer.Add(l)
+	}
+
+	for _, comp := range viewmodels.Computers.Models {
+		if viewmodels.CurrentComputer.Model.ComputerID == comp.ComputerID {
+			continue
+		}
+
+		c.ComputersListContainer.Add(NewComputerCanvasObject(comp))
+	}
 }
 
 func (c *groupsInvitationsContent) DisplayGroupsContent() {
@@ -265,6 +273,42 @@ func NewJoinGroupCanvasObject(group *models.Group) fyne.CanvasObject {
 		widget.NewToolbar(widget.NewToolbarAction(resources.ClipboardEditSvg, func() {
 			DialogJoinComputerToGroup(group)
 		})))
+}
+
+func NewComputerCanvasObject(computer *models.Computer) fyne.CanvasObject {
+	return container.NewHBox(
+		widget.NewLabel(computer.Name),
+		layout.NewSpacer(),
+		widget.NewToolbar(widget.NewToolbarAction(resources.TrashDeleteSvg, func() {
+			DialogDeleteComputer(computer)
+		})),
+	)
+}
+
+func DialogDeleteComputer(computer *models.Computer) {
+	dialog.NewConfirm(fmt.Sprintf("Unregister computer %v?", computer.Name), "This will delete the computer and all of its backups.", func(b bool) {
+		if b {
+			go func() {
+				if err := DeleteComputerProcedure(computer); err != nil {
+					infoDialog(err.Error())
+				}
+			}()
+		}
+	}, global.MainWindow).Show()
+}
+
+func DeleteComputerProcedure(comp *models.Computer) error {
+	_, err := server.Mnimidamon.Computer.DeleteComputer(&computer.DeleteComputerParams{
+		ComputerID: comp.ComputerID,
+		Context:    server.ApiContext,
+	}, viewmodels.CurrentUser.Auth)
+
+	if err != nil {
+		return err
+	}
+	// Remove from models.
+	viewmodels.Computers.Remove(comp)
+	return nil
 }
 
 func NewEnterGroupCanvasObject(group *models.Group) fyne.CanvasObject {

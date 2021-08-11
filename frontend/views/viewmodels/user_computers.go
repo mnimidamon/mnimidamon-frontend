@@ -49,3 +49,13 @@ func (vm *computersViewModel) GetAll() {
 func (vm *computersViewModel) TriggerUpdateEvent() {
 	events.ComputersUpdated.Trigger()
 }
+
+func (vm *computersViewModel) Remove(comp *models.Computer) {
+	for i, c := range vm.Models {
+		if c.ComputerID == comp.ComputerID {
+			vm.Models = append(vm.Models[:i], vm.Models[i+1:]...)
+			vm.TriggerUpdateEvent()
+			break
+		}
+	}
+}
