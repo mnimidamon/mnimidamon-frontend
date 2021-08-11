@@ -80,6 +80,14 @@ func (bs *backupStoreImpl) DeleteTempFile(filename string) {
 	}
 }
 
+func (bs *backupStoreImpl) DeleteBackup(backupID int) {
+	global.Log("deleting backup file %v", backupID)
+	err := os.Remove(bs.GetBackupPath(backupID))
+	if err != nil {
+		global.Log("couldn't remove backup file %v, %v", backupID, err)
+	}
+}
+
 func (bs *backupStoreImpl) IsStored(backupID int) bool {
 	if _, err := os.Stat(bs.GetBackupPath(backupID)); err == nil {
 		return true

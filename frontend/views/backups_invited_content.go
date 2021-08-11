@@ -366,11 +366,12 @@ func BackupDeletionDialog(b *models.Backup) {
 					return
 				}
 				if b != nil {
-					// TODO Update the view model of backups.
+					viewmodels.Backups.Remove(b)
+					services.BackupStorage.DeleteBackup(int(b.BackupID))
 				}
 			}()
 		}
-	}, global.MainWindow)
+	}, global.MainWindow).Show()
 }
 
 func DeleteProcedure(b *models.Backup) (*models.Backup, error) {
@@ -631,7 +632,7 @@ func NewBackupCanvasObject(b *models.Backup) fyne.CanvasObject {
 
 		// Add the delete option.
 		toolbar.Append(widget.NewToolbarAction(resources.TrashDeleteSvg, func() {
-			global.Log("requested to delete %v", b.BackupID)
+			BackupDeletionDialog(b)
 		}))
 	}
 

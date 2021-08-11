@@ -59,4 +59,13 @@ func (vm *backupsViewModel) TriggerUpdateEvent() {
 	events.BackupsUpdated.Trigger()
 }
 
+func (vm *backupsViewModel) Remove(b *models.Backup) {
+	for i, m := range vm.Models {
+		if m.BackupID == b.BackupID {
+			vm.Models = append(vm.Models[:i], vm.Models[i+1:]...)
+		}
+	}
+	vm.TriggerUpdateEvent()
+}
+
 
