@@ -17,5 +17,5 @@ func init() {
 
 	MainWindow = App.NewWindow("mnimidamon")
 
-	Log("Mnimidamon client initialized with id %v", App.UniqueID())
+	Log("mnimidamon client initialized with id %v", App.UniqueID())
 }

@@ -39,7 +39,7 @@ func init() {
 		return nil
 	}
 
-	toolbarLabel := widget.NewLabelWithStyle("Mnimidamon login", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	toolbarLabel := widget.NewLabelWithStyle("mnimidamon login", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 	errorLabel := fragments.NewFlashingLabel()
 
 	toolbar := widget.NewToolbar(
