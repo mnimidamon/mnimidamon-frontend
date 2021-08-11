@@ -91,6 +91,9 @@ func NewEntryPoint() ApplicationEntryPoint {
 	// If config is saved, confirm it.
 	// So that everything gets loaded up.
 	if services.ConfigurationStore.IsStored() {
+		// First the server should be set up.
+		events.ConfirmServerConfig.Trigger(*services.ConfigurationStore.GetConfig().Server)
+		// Inform everyone else.
 		events.ConfirmConfig.Trigger(*services.ConfigurationStore.GetConfig())
 	}
 

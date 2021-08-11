@@ -239,7 +239,20 @@ func (c *backupsInvitedContent) dialogCreateNewBackup() {
 		return
 	}
 	keyEntry := widget.NewEntry()
-	keyEntry.Disable()
+	keyEntry.Validator = func(s string) error {
+		byteKey, err := hex.DecodeString(s)
+		if err != nil {
+			global.Log("decoding string to bytes key %v", err)
+			return errors.New("should be of hex representation")
+		}
+
+		if len(byteKey) != 32 {
+			return errors.New("should be length of 32 bytes")
+		}
+
+		key = byteKey
+		return nil
+	}
 	keyEntry.SetText(hex.EncodeToString(key))
 
 	// File entry.
@@ -282,6 +295,7 @@ func (c *backupsInvitedContent) dialogCreateNewBackup() {
 			}
 		}, global.MainWindow).Show()
 }
+
 func dialogDecryptBackup(backup *models.Backup) {
 	var key services.EncryptionKey
 	keyEntry := widget.NewEntry()
@@ -340,6 +354,39 @@ func dialogDecryptBackup(backup *models.Backup) {
 				go DecryptProcedure(backup, key, targetFolder)
 			}
 		}, global.MainWindow).Show()
+}
+
+func BackupDeletionDialog(b *models.Backup) {
+	dialog.NewConfirm("Confirm deletion of " + b.Filename, "This action will permanently delete this backup.", func(confirmed bool) {
+		if confirmed {
+			go func() {
+				b, err := DeleteProcedure(b)
+				if err != nil {
+					infoDialog(err.Error())
+					return
+				}
+				if b != nil {
+					// TODO Update the view model of backups.
+				}
+			}()
+		}
+	}, global.MainWindow)
+}
+
+func DeleteProcedure(b *models.Backup) (*models.Backup, error) {
+	resp, err := server.Mnimidamon.Backup.InitializeGroupBackupDeletion(&backup.InitializeGroupBackupDeletionParams{
+		BackupID: b.BackupID,
+		GroupID:  b.GroupID,
+		Context:  server.ApiContext,
+	}, viewmodels.CurrentComputer.Auth)
+
+	if err != nil {
+		global.Log("failed to delete initialized %v", err)
+		return nil, err
+	}
+
+	global.Log("successful delete response %v", resp)
+	return resp.Payload, nil
 }
 
 func DecryptProcedure(b *models.Backup, key services.EncryptionKey, targetFolder string) {
@@ -495,16 +542,7 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 		if err != nil {
 			infoDialog(err.Error())
 			bl.UpdateInfo("Upload error, cancelling.")
-			resp, err := server.Mnimidamon.Backup.InitializeGroupBackupDeletion(&backup.InitializeGroupBackupDeletionParams{
-				BackupID: respInit.Payload.BackupID,
-				GroupID:  groupID,
-				Context:  server.ApiContext,
-			}, viewmodels.CurrentComputer.Auth)
-			if err != nil {
-				global.Log("failed to delete initialized %v", err)
-			} else {
-				global.Log("successful delete of initialized %v", resp)
-			}
+			// TODO delete?
 			return
 		}
 
@@ -600,8 +638,8 @@ func NewBackupCanvasObject(b *models.Backup) fyne.CanvasObject {
 	return container.NewHBox(
 		widget.NewLabel(b.Filename),
 		layout.NewSpacer(),
-		toolbar,
 		infoLayout,
+		toolbar,
 	)
 }
 
