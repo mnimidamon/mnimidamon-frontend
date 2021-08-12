@@ -5,6 +5,7 @@ import (
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/services"
+	_ "mnimidamonbackend/frontend/taskmaker"
 	"mnimidamonbackend/frontend/views"
 )
 

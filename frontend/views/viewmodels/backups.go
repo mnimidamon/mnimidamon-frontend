@@ -46,7 +46,33 @@ func (vm *backupsViewModel) GetAllBackups() {
 	}()
 }
 
+func (vm *backupsViewModel) AddOrUpdate(backup *models.Backup) {
+	if SelectedGroup.Model == nil {
+		return
+	}
+
+	if SelectedGroup.Model.GroupID != backup.GroupID {
+		return
+	}
+
+	// Find and replace it, or add it.
+	for _, b := range vm.Models {
+		if b.BackupID == backup.BackupID {
+			b = backup
+			vm.TriggerUpdateEvent()
+			return
+		}
+	}
+
+	// Else add it.
+	vm.Add(backup)
+}
+
 func (vm *backupsViewModel) Add(backup *models.Backup) {
+	if SelectedGroup.Model == nil {
+		return
+	}
+
 	// Check if the group was not switched while the backup was loading itself into existence xD.
 	if backup.GroupID != SelectedGroup.Model.GroupID {
 		return
@@ -60,6 +86,10 @@ func (vm *backupsViewModel) TriggerUpdateEvent() {
 }
 
 func (vm *backupsViewModel) Remove(b *models.Backup) {
+	if SelectedGroup.Model == nil {
+		return
+	}
+
 	for i, m := range vm.Models {
 		if m.BackupID == b.BackupID {
 			vm.Models = append(vm.Models[:i], vm.Models[i+1:]...)

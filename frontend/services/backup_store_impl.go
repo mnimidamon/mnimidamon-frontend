@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/models"
@@ -18,11 +19,25 @@ func init() {
 
 	// Register the config confirm event.
 	events.ConfirmConfig.Register(BackupStorage)
+
+	// Register for config reset, that will delete all the local backups and the temp folder.
+	events.RestartConfiguration.Register(BackupStorage)
 }
 
 type backupStoreImpl struct {
 	BasePath string
 	TempPath string
+}
+
+func (bs *backupStoreImpl) HandleRestartConfigurationHandler() {
+	bs.DeleteAllBackups()
+}
+
+func (bs *backupStoreImpl) DeleteAllBackups() {
+	global.Log("deleting all backups")
+	for _, id := range bs.GetAllStoredBackupsIDS() {
+		bs.DeleteBackup(int(id))
+	}
 }
 
 func (bs *backupStoreImpl) HandleConfirmConfig(config global.Config) {
@@ -31,8 +46,8 @@ func (bs *backupStoreImpl) HandleConfirmConfig(config global.Config) {
 }
 
 func (bs *backupStoreImpl) UpdateBasePath(basePath string) {
-	bs.BasePath = basePath
-	bs.TempPath = filepath.Join(basePath, "temp")
+	bs.BasePath = filepath.Join(basePath, "backups")
+	bs.TempPath = filepath.Join(basePath, "temporary")
 	bs.makeRequiredFolders()
 }
 
@@ -80,7 +95,7 @@ func (bs *backupStoreImpl) DeleteTempFile(filename string) {
 	}
 }
 
-func (bs *backupStoreImpl) DeleteBackup(backupID int) {
+func (bs *backupStoreImpl) DeleteBackup(backupID int) error {
 	global.Log("deleting backup file %v", backupID)
 	err := os.Remove(bs.GetBackupPath(backupID))
 	if err != nil {
@@ -88,6 +103,25 @@ func (bs *backupStoreImpl) DeleteBackup(backupID int) {
 	} else {
 		global.Log("deleted backup file %v", backupID)
 	}
+	return err
+}
+
+func (bs *backupStoreImpl) GetAllStoredBackupsIDS() []int64 {
+	files, err := ioutil.ReadDir(bs.BasePath)
+	if err != nil {
+		global.Log("error when opening backup storage directory: %v", err)
+		return nil
+	}
+
+	var ids []int64
+	for _, f := range files {
+		id, err := strconv.Atoi(f.Name())
+		if err == nil {
+			ids = append(ids, int64(id))
+		}
+	}
+
+	return ids
 }
 
 func (bs *backupStoreImpl) IsStored(backupID int) bool {
