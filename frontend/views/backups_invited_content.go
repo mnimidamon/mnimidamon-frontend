@@ -257,7 +257,7 @@ func (c *backupsInvitedContent) dialogCreateNewBackup() {
 
 	// File entry.
 	fileEntry := widget.NewEntry()
-	fileEntry.SetPlaceHolder("path to the file..")
+	fileEntry.SetPlaceHolder("path to the file")
 	fileEntry.Validator = func(s string) error {
 		if _, err := os.Stat(s); os.IsNotExist(err) {
 			return errors.New("file does not exist")
@@ -317,7 +317,7 @@ func dialogDecryptBackup(backup *models.Backup) {
 
 	// File entry.
 	targetFolder := widget.NewEntry()
-	targetFolder.SetPlaceHolder("")
+	targetFolder.SetPlaceHolder("select a folder")
 	targetFolder.Validator = func(s string) error {
 		if _, err := os.Stat(s); os.IsNotExist(err) {
 			return errors.New("folder does not exist")
