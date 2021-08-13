@@ -99,4 +99,13 @@ func (vm *backupsViewModel) Remove(b *models.Backup) {
 	}
 }
 
+func (vm *backupsViewModel) Exists(id int64) bool {
+	for _, b := range vm.Models {
+		if b.BackupID == id {
+			return true
+		}
+	}
+	return false
+}
+
 

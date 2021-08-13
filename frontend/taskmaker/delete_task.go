@@ -15,12 +15,18 @@ type DeleteTask struct {
 
 func (task *DeleteTask) Execute(ctx context.Context) error {
 	task.progress = 0
-	err := services.BackupStorage.DeleteBackup(int(task.backupID))
+
+	var err error
+	if services.BackupStorage.IsStored(int(task.backupID)) {
+		err = services.BackupStorage.DeleteBackup(int(task.backupID))
+	}
+
 	for _, b := range viewmodels.Backups.Models {
 		if b.BackupID == task.backupID {
 			viewmodels.Backups.Remove(b)
 		}
 	}
+
 	task.progress = 100
 	return err
 }
