@@ -222,11 +222,32 @@ func (c *backupsInvitedContent) rerenderBackups() {
 		c.BackupsListContainer.Add(NewItalicLabel("There are no backups in this group."))
 		return
 	}
+	// Sort backups.
+	var ownedBackups []*models.Backup
+	var otherBackups []*models.Backup
 
 	for _, b := range viewmodels.Backups.Models {
+		if b.OwnerID == viewmodels.CurrentUser.Model.UserID {
+			ownedBackups = append(ownedBackups, b)
+		} else {
+			otherBackups = append(otherBackups, b)
+		}
+	}
+
+	if len(otherBackups) > 0 && len(ownedBackups) > 0 {
+		c.BackupsListContainer.Add(widget.NewLabelWithStyle("yours", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	}
+	for _, b := range ownedBackups {
 		c.BackupsListContainer.Add(NewBackupCanvasObject(b))
 	}
 
+	if len(otherBackups) > 0 {
+		c.BackupsListContainer.Add(widget.NewLabelWithStyle("owned by others", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	}
+
+	for _, b := range otherBackups {
+		c.BackupsListContainer.Add(NewBackupCanvasObject(b))
+	}
 }
 
 func (c *backupsInvitedContent) dialogCreateNewBackup() {
@@ -337,7 +358,7 @@ func dialogDecryptBackup(backup *models.Backup) {
 
 	// Combined dialog for creating new backup.
 	name := backup.Filename
-	dialog.NewForm("Decrypt backup " + name, "Decrypt", "Cancel",
+	dialog.NewForm("Decrypt backup "+name, "Decrypt", "Cancel",
 		[]*widget.FormItem{
 			widget.NewFormItem("Folder", targetFolder),
 			widget.NewFormItem("", buttonSelectFolder),
@@ -355,7 +376,7 @@ func dialogDecryptBackup(backup *models.Backup) {
 }
 
 func BackupDeletionDialog(b *models.Backup) {
-	dialog.NewConfirm("Confirm deletion of " + b.Filename, "This action will permanently delete this backup.", func(confirmed bool) {
+	dialog.NewConfirm("Confirm deletion of "+b.Filename, "This action will permanently delete this backup.", func(confirmed bool) {
 		if confirmed {
 			go func() {
 				err := DeleteProcedure(b)
@@ -401,7 +422,7 @@ func DecryptProcedure(b *models.Backup, key services.EncryptionKey, targetFolder
 
 	// New backup loader process for UI.
 	bl := fragments.NewLoaderProcess(loaderName, func() string {
-		percentage := int(float64(*numDecrypted) / float64(b.Size * 1024) * 100)
+		percentage := int(float64(*numDecrypted) / float64(b.Size*1024) * 100)
 		if percentage == 100 {
 			return "Decrypted"
 		}
@@ -609,7 +630,7 @@ func NewBackupCanvasObject(b *models.Backup) fyne.CanvasObject {
 
 	sizeString := ""
 	if b.Size > 1023 {
-		sizeString = fmt.Sprintf("%v MB", b.Size / 1024)
+		sizeString = fmt.Sprintf("%v MB", b.Size/1024)
 	} else {
 		sizeString = fmt.Sprintf("%v KB", b.Size)
 	}
@@ -676,5 +697,3 @@ func NewItalicLabel(msg string) *widget.Label {
 
 	return l
 }
-
-
