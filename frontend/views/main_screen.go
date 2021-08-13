@@ -150,8 +150,7 @@ func showLogOutDialog() {
 			// Delete this computer.
 			go func() {
 				if err := DeleteComputerProcedure(&viewmodels.CurrentComputer.Model.Computer); err != nil{
-					infoDialog(err.Error())
-					return
+					infoDialog("An error occurred when trying to delete this computer from the server registry, please delete it manually from another one. \n" + err.Error())
 				}
 
 				// Navigate to the start if successful.
