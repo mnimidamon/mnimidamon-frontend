@@ -1,13 +1,11 @@
 package views
 
 import (
-	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
@@ -402,7 +400,7 @@ func DecryptProcedure(b *models.Backup, key services.EncryptionKey, targetFolder
 	}
 
 	// New backup loader process for UI.
-	bl := NewBackupLoaderProcess(loaderName, func() string {
+	bl := fragments.NewLoaderProcess(loaderName, func() string {
 		percentage := int(float64(*numDecrypted) / float64(b.Size * 1024) * 100)
 		if percentage == 100 {
 			return "Decrypted"
@@ -460,7 +458,7 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 	}
 
 	// New backup loader process for UI.
-	bl := NewBackupLoaderProcess(loaderName, func() string {
+	bl := fragments.NewLoaderProcess(loaderName, func() string {
 		// Calculate the percentage based on the size and the pointer value of bytes already processed.
 		percentage := int(float64(*readBytes) / float64(fi.Size()) * 100)
 		if percentage == 100 {
@@ -521,7 +519,7 @@ func (c *backupsInvitedContent) BackupUploadProcedure(path string, key services.
 		global.Log("backup init response %v", respInit.Payload)
 
 		// Refresher for uploading.
-		bl.refresher = func() string {
+		bl.Refresher = func() string {
 			offset, err := encryptedFile.Seek(0, io.SeekCurrent)
 
 			percentage := int(float64(offset) / float64(fi.Size()) * 100)
@@ -679,81 +677,4 @@ func NewItalicLabel(msg string) *widget.Label {
 	return l
 }
 
-func NewBackupLoaderProcess(name string, refresher func() string) *BackupLoaderProcess {
-	infoBind := binding.NewString()
 
-	return &BackupLoaderProcess{
-		Name:         name,
-		infoBinding:  infoBind,
-		canvasObject: container.NewHBox(widget.NewLabel(name), layout.NewSpacer(), widget.NewLabelWithData(infoBind)),
-		refresher:    refresher,
-	}
-}
-
-type BackupLoaderProcess struct {
-	Name         string
-	infoBinding  binding.String
-	canvasObject fyne.CanvasObject
-
-	parent      *fyne.Container
-	refresher   func() string
-	refreshStop context.CancelFunc
-}
-
-func (b *BackupLoaderProcess) UpdateInfo(msg string) {
-	b.infoBinding.Set(msg)
-}
-
-func (b *BackupLoaderProcess) AddToParentContainer(parent *fyne.Container) {
-	b.parent = parent
-	parent.Add(b.GetCanvasObject())
-	b.StartRefreshing()
-}
-
-func (b *BackupLoaderProcess) GetCanvasObject() fyne.CanvasObject {
-	return b.canvasObject
-}
-
-func (b *BackupLoaderProcess) RemoveFromParentContainer() {
-	if b.parent != nil {
-		b.StopRefreshing()
-		go func() {
-			time.Sleep(time.Millisecond * 1500)
-			b.parent.Remove(b.canvasObject)
-			b.parent.Refresh()
-			b.parent = nil
-		}()
-	}
-}
-func (b *BackupLoaderProcess) StopRefreshing() {
-	if b.refreshStop != nil {
-		b.refreshStop()
-		b.refreshStop = nil
-	}
-}
-
-func (b *BackupLoaderProcess) StartRefreshing() {
-	if b.refreshStop != nil {
-		return
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	b.refreshStop = cancel
-	go b.RefreshRoutine(ctx)
-}
-
-func (b *BackupLoaderProcess) RefreshRoutine(ctx context.Context) {
-	global.Log("task ui refreshing started...")
-	for {
-		select {
-		case <-ctx.Done():
-			global.Log("stopped task refreshing, context canceled")
-			return
-		default:
-			if b.parent != nil {
-				b.UpdateInfo(b.refresher())
-			}
-			time.Sleep(time.Millisecond * 150)
-		}
-	}
-}

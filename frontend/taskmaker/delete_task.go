@@ -3,11 +3,30 @@ package taskmaker
 import (
 	"context"
 	"mnimidamonbackend/frontend/services"
+	"mnimidamonbackend/frontend/views/viewmodels"
 	"mnimidamonbackend/models"
+	"strconv"
 )
 
 type DeleteTask struct {
 	backupID int64
+	progress int
+}
+
+func (task *DeleteTask) Execute(ctx context.Context) error {
+	task.progress = 0
+	err := services.BackupStorage.DeleteBackup(int(task.backupID))
+	for _, b := range viewmodels.Backups.Models {
+		if b.BackupID == task.backupID {
+			viewmodels.Backups.Remove(b)
+		}
+	}
+	task.progress = 100
+	return err
+}
+
+func (task *DeleteTask) GetProgress() int {
+	return task.progress
 }
 
 func NewDeleteTask(backupID int64) QueuedTask {
@@ -17,12 +36,7 @@ func NewDeleteTask(backupID int64) QueuedTask {
 }
 
 func (task *DeleteTask) Label() string {
-	return "Deleting backup with id " + string(task.backupID)
-}
-
-func (task *DeleteTask) Execute(ctx context.Context, progress *uint) error {
-	err := services.BackupStorage.DeleteBackup(int(task.backupID))
-	return err
+	return "Deleting backup with id " + strconv.FormatInt(task.backupID, 10)
 }
 
 func GetAllDeletionTasks(backups []*models.Backup) []QueuedTask {

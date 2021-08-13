@@ -2,15 +2,19 @@ package taskmaker
 
 import (
 	"context"
+	"io"
 	"mnimidamonbackend/client/backup"
 	"mnimidamonbackend/frontend/services"
 	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/frontend/views/viewmodels"
 	"mnimidamonbackend/models"
+	"os"
 )
 
 type UploadTask struct {
 	backup *models.Backup
+	File   *os.File
+	Size   int64
 }
 
 func (task *UploadTask) Label() string {
@@ -19,20 +23,42 @@ func (task *UploadTask) Label() string {
 
 func NewUploadTask(backup *models.Backup) *UploadTask {
 	return &UploadTask{
-		backup: backup,
+		backup:    backup,
+		File:      nil,
+		Size:      0,
 	}
 }
 
-func (task *UploadTask) Execute(ctx context.Context, progress *uint) error {
-	rc, err := services.BackupStorage.Get(int(task.backup.BackupID))
+func (task *UploadTask) GetProgress() int {
+	if task.File == nil {
+		return 0
+	}
+
+	offset, err := task.File.Seek(0, io.SeekCurrent)
+	percentage := int(float64(offset)/float64(task.Size) * 100)
+	if err != nil {
+		return 100
+	}
+
+	return percentage
+}
+
+func (task *UploadTask) Execute(ctx context.Context) error {
+	file, err := services.BackupStorage.Get(int(task.backup.BackupID))
 
 	if err != nil {
 		return nil
 	}
+	defer file.Close()
+
+	fi, _ := file.Stat()
+	task.Size = fi.Size()
+	task.File = file
+
 
 	// Send the backup on the server.
 	resp, err := server.Mnimidamon.Backup.UploadBackup(&backup.UploadBackupParams{
-		BackupData: rc,
+		BackupData: task.File,
 		BackupID:   task.backup.BackupID,
 		GroupID:    task.backup.GroupID,
 		Context:    ctx,

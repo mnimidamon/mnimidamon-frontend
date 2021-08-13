@@ -2,10 +2,12 @@ package taskmaker
 
 import (
 	"context"
+	"fmt"
 	"mnimidamonbackend/client/backup"
 	"mnimidamonbackend/client/group_computer"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
+	"mnimidamonbackend/frontend/views/fragments"
 	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/frontend/views/viewmodels"
 	"mnimidamonbackend/models"
@@ -98,31 +100,57 @@ func (t *taskMakerImpl) TaskQueuer(ctx context.Context) {
 
 func (t *taskMakerImpl) ExecuteTasks(ctx context.Context) {
 	if len(t.tasks) > 0 {
-		global.Log("task executor started...")
+		// Make UI visual thing of which tasks are being executed.
+		lp := fragments.NewLoaderProcess("Task Maker", func() string {
+			return "Starting"
+		})
+
+		// Attach it to some container.
+		events.ProcessStarted.Trigger(lp)
+		lp.StartRefreshing()
+		defer lp.RemoveFromParentContainer()
+
+		numTasks := len(t.tasks)
+		global.Log("task executor started for %v tasks...", numTasks)
+
 		// Log string.
 		log := "task executor results: "
-		for _, task := range t.tasks {
+
+		for i, task := range t.tasks {
 			select {
 			case <-ctx.Done():
 				global.Log(log)
 				global.Log("task executor: context canceled, stopping execution")
 				return
 			default:
+				// Set up the UI.
+				lp.Refresher = func() string {
+					progress := task.GetProgress()
+					return fmt.Sprintf("%v  %v%%   %v/%v", task.Label(), progress, i + 1, numTasks)
+				}
 
 				// Execute the task at hand.
-				progressPercent := new(uint)
-				err := task.Execute(ctx, progressPercent)
+				err := task.Execute(ctx)
+				lp.StopRefreshing()
+				time.Sleep(time.Millisecond * 100)
 
 				switch {
 				case err != nil:
+					lp.UpdateInfo(fmt.Sprintf("%v  Failed   %v/%v", task.Label(), i + 1, numTasks))
 					log += "\nfail: " + task.Label() + " err:" + err.Error()
 				default:
+					lp.UpdateInfo(fmt.Sprintf("%v  Done   %v/%v", task.Label(), i + 1, numTasks))
 					log += "\nsuccess: " + task.Label()
 				}
 
+				time.Sleep(time.Second)
 			}
 		}
+
 		global.Log(log)
+		lp.StopRefreshing()
+		lp.UpdateInfo("Done")
+		time.Sleep(time.Second)
 		t.DumpTasks()
 	}
 }

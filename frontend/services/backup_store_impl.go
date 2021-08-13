@@ -30,10 +30,10 @@ type backupStoreImpl struct {
 }
 
 func (bs *backupStoreImpl) HandleRestartConfigurationHandler() {
-	bs.DeleteAllBackups()
+	bs.DeleteAllBackupsAndTempFiles()
 }
 
-func (bs *backupStoreImpl) DeleteAllBackups() {
+func (bs *backupStoreImpl) DeleteAllBackupsAndTempFiles() {
 	global.Log("deleting all backups")
 	for _, id := range bs.GetAllStoredBackupsIDS() {
 		bs.DeleteBackup(int(id))
