@@ -35,7 +35,6 @@ jobs:
       -
         name: Test Fyne Cross
         run:
-          fyne-cross -help
           ./fyne-cross -help
       -
         name: Cross Compile Linux Binaries
