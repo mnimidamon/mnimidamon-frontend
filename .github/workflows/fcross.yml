@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: Install Fyne Cross
-        run: go get github.com/fyne-io/fyne-cross
+        run: go install github.com/fyne-io/fyne-cross
       -
         name: Cross Compile Linux Binaries
         run: fyne-cross linux -output . ./cmd/mnimidamon-client/main.go
