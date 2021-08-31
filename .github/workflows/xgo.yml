@@ -30,4 +30,4 @@ jobs:
           race: false
           ldflags: -s -w
           buildmode: default
-          working_dir: $GITHUB_WORKSPACE/cmd/mnimidamon-client/main.go
+          working_dir: cmd/mnimidamon-client/main.go
