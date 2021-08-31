@@ -13,15 +13,43 @@ jobs:
           - 1.15.x
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      -
+        name: Checkout
         uses: actions/checkout@v2
-      - name: Install Fyne Cross
+      -
+        name: Install Fyne Cross
         run: go get github.com/fyne-io/fyne-cross
-      - name: Build Fyne Cross
+      -
+        name: Build Fyne Cross
         run: go build github.com/fyne-io/fyne-cross
-      - name: Cross Compile Linux Binaries
-        run: ./fyne-cross linux -output linux/mnimidamon-client ./cmd/mnimidamon-client
-      - name: Cross Compile Windows Binaries
-        run: ./fyne-cross windows -output windows/mnimidamon-client ./cmd/mnimidamon-client
-      - name: Cross Compile Darwin Binaries
-        run: ./fyne-cross darwin -output darwin/mnimidamon-client ./cmd/mnimidamon-client
+      -
+        name: Cross Compile Linux Binaries
+        run: ./fyne-cross linux -output . ./cmd/mnimidamon-client/main.go
+      -
+        name: Cross Compile Windows Binaries
+        run: ./fyne-cross windows -output . ./cmd/mnimidamon-client/main.go
+      -
+        name: Cross Compile Darwin Binaries
+        run: ./fyne-cross darwin -output . ./cmd/mnimidamon-client/main.go
+      -
+        name: Move artifacts
+        run: |
+          mv $GITHUB_WORKSPACE/dist/**/* $GITHUB_WORKSPACE/dist/
+      -
+        name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: xgo
+          path: $GITHUB_WORKSPACE/dist/*
+          if-no-files-found: error
+      -
+        name: GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          draft: true
+          files: |
+            $GITHUB_WORKSPACE/dist/*.tar.gz
+            $GITHUB_WORKSPACE/dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
