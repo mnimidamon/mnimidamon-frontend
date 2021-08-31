@@ -33,6 +33,11 @@ jobs:
           sudo apt-get install tree
           tree ..
       -
+        name: Test Fyne Cross
+        run:
+          fyne-cross -help
+          ./fyne-cross -help
+      -
         name: Cross Compile Linux Binaries
         run: ./fyne-cross linux -output . ./cmd/mnimidamon-client/main.go
       -
