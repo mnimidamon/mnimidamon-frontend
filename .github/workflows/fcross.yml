@@ -14,23 +14,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      -
         name: Checkout
         uses: actions/checkout@v2
       -
         name: Install Fyne Cross
         run: go get github.com/fyne-io/fyne-cross
       -
-        name: Build Fyne Cross
-        run: go build github.com/fyne-io/fyne-cross
-      -
         name: Cross Compile Linux Binaries
-        run: ./fyne-cross linux -output . ./cmd/mnimidamon-client/main.go
+        run: fyne-cross linux -output . ./cmd/mnimidamon-client/main.go
       -
         name: Cross Compile Windows Binaries
-        run: ./fyne-cross windows -output . ./cmd/mnimidamon-client/main.go
+        run: fyne-cross windows -output . ./cmd/mnimidamon-client/main.go
       -
         name: Cross Compile Darwin Binaries
-        run: ./fyne-cross darwin -output . ./cmd/mnimidamon-client/main.go
+        run: fyne-cross darwin -output . ./cmd/mnimidamon-client/main.go
       -
         name: Move artifacts
         run: |
