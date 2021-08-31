@@ -19,6 +19,7 @@ jobs:
       - name: Install Fyne Cross
         run: |
           go get github.com/fyne-io/fyne-cross
+          go build github.com/fyne-io/fyne-cross
 
       - name: Cross Compile Linux Binaries
         run: |
