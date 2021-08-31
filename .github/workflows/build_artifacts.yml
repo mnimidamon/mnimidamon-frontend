@@ -52,7 +52,8 @@ jobs:
         with:
           name: distributions
           path: |
-            $GITHUB_WORKSPACE/dist/*.*
+            dist/*.tar.gz
+            dist/*.zip
           if-no-files-found: error
       - name: GitHub Release
         uses: softprops/action-gh-release@v1
