@@ -31,39 +31,35 @@ jobs:
           go build github.com/fyne-io/fyne-cross
           mv ./fyne-cross ./fc
       -
-        name: Show files in bin
+        name: Compile Linux Binaries
+        run: sudo ./fc linux -arch=amd64,386,arm -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png -name mnimidamon-client  $GITHUB_WORKSPACE/cmd/mnimidamon-client
+      -
+        name: Compile Windows Binaries
+        run: sudo ./fc windows -arch=amd64,386 -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png -name mnimidamon-client.exe $GITHUB_WORKSPACE/cmd/mnimidamon-client
+      -
+        name: Compile Darwin Binaries
+        run: sudo ./fc darwin -arch=amd64,arm64 -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png -name mnimidamon-client $GITHUB_WORKSPACE/cmd/mnimidamon-client
+      -
+        name: Move and rename distributions
         run: |
-          sudo apt-get install tree
-          tree ..
-      -
-        name: Test Fyne Cross
-        run: |
-          ./fc windows -help
-          ./fc darwin -help
-          ./fc linux -help
-      -
-        name: Cross Compile Linux Binaries
-        run: sudo ./fc linux -arch=amd64,386,arm -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png  $GITHUB_WORKSPACE/cmd/mnimidamon-client
-      -
-        name: Cross Compile Windows Binaries
-        run: sudo ./fc windows -arch=amd64,386 -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png $GITHUB_WORKSPACE/cmd/mnimidamon-client
-      -
-        name: Cross Compile Darwin Binaries
-        run: sudo ./fc darwin -arch=amd64,386 -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png  $GITHUB_WORKSPACE/cmd/mnimidamon-client
+          mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-386/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-client_windows-386.exe.zip
+          mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-amd64/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-client_windows-amd64.exe.zip
+          mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-amd64/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-amd64.tar.gz
+          mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-386/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-386.tar.gz
+          mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-arm/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-arm.tar.gz
+          mv $GITHUB_WORKSPACE/fyne-cross/dist/darwin-amd64/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_darwin-amd64.tar.gz
+          mv $GITHUB_WORKSPACE/fyne-cross/dist/darwin-arm64/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_darwin-arm64.tar.gz
       -
         name: Show files in bin
         run: |
           tree .
       -
-        name: Move artifacts
-        run: |
-          mv $GITHUB_WORKSPACE/dist/**/* $GITHUB_WORKSPACE/dist/
-      -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: xgo
-          path: $GITHUB_WORKSPACE/dist/*
+          name: distributions
+          path: |
+            $GITHUB_WORKSPACE/dist/**/*.*
           if-no-files-found: error
       -
         name: GitHub Release
@@ -72,7 +68,6 @@ jobs:
         with:
           draft: true
           files: |
-            $GITHUB_WORKSPACE/dist/*.tar.gz
-            $GITHUB_WORKSPACE/dist/*.zip
+            $GITHUB_WORKSPACE/dist/**/*.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
