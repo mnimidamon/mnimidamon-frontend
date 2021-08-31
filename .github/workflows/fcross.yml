@@ -45,7 +45,7 @@ jobs:
       -
         name: Move and Rename Binaries
         run: |
-          mkdri dist
+          mkdir $GITHUB_WORKSPACE/dist
           mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-386/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-client_windows-386.exe.zip
           mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-amd64/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-client_windows-amd64.exe.zip
           mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-amd64/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-amd64.tar.gz
