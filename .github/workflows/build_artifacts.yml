@@ -1,4 +1,4 @@
-name: fyne cross-compile
+name: build binaries
 
 on:
   pull_request:
@@ -13,58 +13,48 @@ jobs:
           - 1.15.x
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Install Go
+      - name: Install Go
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go-version }}
-      -
-        name: Install Docker
+      - name: Install Docker
         uses: docker-practice/actions-setup-docker@master
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v2
-      -
-        name: Install Fyne Cross
+      - name: Install Fyne Cross
         run: |
           go install github.com/fyne-io/fyne-cross
           go build github.com/fyne-io/fyne-cross
           mv ./fyne-cross ./fc
-      -
-        name: Compile Linux Binaries
+      - name: Compile Linux Binaries
         run: sudo ./fc linux -arch=amd64,386,arm -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png -name mnimidamon-client  $GITHUB_WORKSPACE/cmd/mnimidamon-client
       - name: Show Files
         run: |
           tree .
-      -
-        name: Compile Windows Binaries
+      - name: Compile Windows Binaries
         run: sudo ./fc windows -arch=amd64,386 -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png -name mnimidamon-client.exe $GITHUB_WORKSPACE/cmd/mnimidamon-client
       - name: Show Files
         run: |
           tree .
-      -
-        name: Move and Rename Binaries
+      - name: Move and Rename Binaries
         run: |
-          mkdir $GITHUB_WORKSPACE/dist
-          mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-386/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-client_windows-386.exe.zip
-          mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-amd64/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-client_windows-amd64.exe.zip
-          mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-amd64/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-amd64.tar.gz
-          mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-386/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-386.tar.gz
-          mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-arm/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-arm.tar.gz
-      -
-        name: Show Files
+          sudo mkdir $GITHUB_WORKSPACE/dist
+          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-386/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-client_windows-386.exe.zip
+          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-amd64/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-client_windows-amd64.exe.zip
+          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-amd64/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-amd64.tar.gz
+          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-386/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-386.tar.gz
+          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-arm/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-arm.tar.gz
+      - name: Show Files
         run: |
           tree .
-      -
-        name: Upload Artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
           name: distributions
           path: |
             $GITHUB_WORKSPACE/dist/*.*
           if-no-files-found: error
-      -
-        name: GitHub Release
+      - name: GitHub Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/v')
         with:
