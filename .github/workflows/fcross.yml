@@ -31,13 +31,18 @@ jobs:
           go build github.com/fyne-io/fyne-cross
           mv ./fyne-cross ./fc
       -
+        name: Install Darwin Image
+        run: sudo ./fc darwin-image
+      -
         name: Compile Linux Binaries
         run: sudo ./fc linux -arch=amd64,386,arm -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png -name mnimidamon-client  $GITHUB_WORKSPACE/cmd/mnimidamon-client
       -
         name: Compile Windows Binaries
         run: sudo ./fc windows -arch=amd64,386 -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png -name mnimidamon-client.exe $GITHUB_WORKSPACE/cmd/mnimidamon-client
+
       -
         name: Compile Darwin Binaries
+        continue-on-error: true
         run: sudo ./fc darwin -arch=amd64,arm64 -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png -name mnimidamon-client $GITHUB_WORKSPACE/cmd/mnimidamon-client
       -
         name: Move and rename distributions
