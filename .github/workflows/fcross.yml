@@ -33,9 +33,15 @@ jobs:
       -
         name: Compile Linux Binaries
         run: sudo ./fc linux -arch=amd64,386,arm -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png -name mnimidamon-client  $GITHUB_WORKSPACE/cmd/mnimidamon-client
+      - name: Show Files
+        run: |
+          tree .
       -
         name: Compile Windows Binaries
         run: sudo ./fc windows -arch=amd64,386 -app-id mnimidamon-client -icon $GITHUB_WORKSPACE/public/mnimidamon-frontend-icon.png -name mnimidamon-client.exe $GITHUB_WORKSPACE/cmd/mnimidamon-client
+      - name: Show Files
+        run: |
+          tree .
       -
         name: Move and Rename Binaries
         run: |
@@ -49,7 +55,7 @@ jobs:
         run: |
           tree .
       -
-        name: Upload artifacts
+        name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
           name: distributions
