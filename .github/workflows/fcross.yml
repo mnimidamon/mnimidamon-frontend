@@ -35,16 +35,24 @@ jobs:
       -
         name: Test Fyne Cross
         run:
-          ./fyne-cross -help
+          ./fyne-cross windows -help
+          ./fyne-cross darwin -help
+          ./fyne-cross linux -help
       -
         name: Cross Compile Linux Binaries
-        run: ./fyne-cross linux -output . ./cmd/mnimidamon-client/main.go
+        run: ./fyne-cross linux -arch=amd64,386,arm -output . ./cmd/mnimidamon-client
       -
         name: Cross Compile Windows Binaries
-        run: ./fyne-cross windows -output . ./cmd/mnimidamon-client/main.go
+        run:
+
+          ./fyne-cross windows -arch=amd64,386 -output . ./cmd/mnimidamon-client
       -
         name: Cross Compile Darwin Binaries
-        run: ./fyne-cross darwin -output . ./cmd/mnimidamon-client/main.go
+        run: ./fyne-cross darwin -arch=amd64,386 -output . ./cmd/mnimidamon-client
+      -
+        name: Show files in bin
+        run: |
+          tree .
       -
         name: Move artifacts
         run: |
