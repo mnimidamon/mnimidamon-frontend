@@ -26,21 +26,22 @@ jobs:
           prefix: mnimidamon-client
           targets: windows/386,windows/amd64,linux/386,linux/amd64,linux/arm,darwin/386,darwin/amd64
           v: true
-          x: false
+          x: true
           race: false
           ldflags: -s -w
           pkg: cmd/mnimidamon-client/main.go
           buildmode: default
+          working_dir: $GITHUB_WORKSPACE
       -
         name: Move artifacts
         run: |
-          mv ./dist/**/* ./dist/
+          mv $GITHUB_WORKSPACE/dist/**/* $GITHUB_WORKSPACE/dist/
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
           name: xgo
-          path: ./dist/*
+          path: $GITHUB_WORKSPACE/dist/*
           if-no-files-found: error
       -
         name: GitHub Release
@@ -49,7 +50,7 @@ jobs:
         with:
           draft: true
           files: |
-            dist/*.tar.gz
-            dist/*.zip
+            $GITHUB_WORKSPACE/dist/*.tar.gz
+            $GITHUB_WORKSPACE/dist/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
