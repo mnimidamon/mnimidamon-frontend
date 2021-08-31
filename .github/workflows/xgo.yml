@@ -31,17 +31,16 @@ jobs:
           ldflags: -s -w
           pkg: cmd/mnimidamon-client/main.go
           buildmode: default
-          working_dir: ${{ GITHUB_WORKSPACE }}
       -
         name: Move artifacts
         run: |
-          mv ${{ GITHUB_WORKSPACE }}/dist/**/* ${{ GITHUB_WORKSPACE }}/dist/
+          mv $GITHUB_WORKSPACE/dist/**/* $GITHUB_WORKSPACE/dist/
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
           name: xgo
-          path: ${{ GITHUB_WORKSPACE }}/dist/*
+          path: $GITHUB_WORKSPACE/dist/*
           if-no-files-found: error
       -
         name: GitHub Release
