@@ -16,14 +16,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Fyne Cross
-        run: |
-          go get github.com/fyne-io/fyne-cross
+        run: go get github.com/fyne-io/fyne-cross
       - name: Cross Compile Linux Binaries
-        run: |
-          fyne-cross linux -output linux/mnimidamon-client ./cmd/mnimidamon-client
+        run: fyne-cross linux -output linux/mnimidamon-client ./cmd/mnimidamon-client
       - name: Cross Compile Windows Binaries
-        run: |
-          fyne-cross windows -output windows/mnimidamon-client ./cmd/mnimidamon-client
+        run: fyne-cross windows -output windows/mnimidamon-client ./cmd/mnimidamon-client
       - name: Cross Compile Darwin Binaries
-        run: |
-          fyne-cross darwin -output darwin/mnimidamon-client ./cmd/mnimidamon-client
+        run: fyne-cross darwin -output darwin/mnimidamon-client ./cmd/mnimidamon-client
