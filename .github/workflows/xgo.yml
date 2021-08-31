@@ -30,4 +30,3 @@ jobs:
           race: false
           ldflags: -s -w
           buildmode: default
-          working_dir: cmd/mnimidamon-client
