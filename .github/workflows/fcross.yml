@@ -25,6 +25,7 @@ jobs:
         name: Install Fyne Cross
         run: |
           go install github.com/fyne-io/fyne-cross
+          go build github.com/fyne-io/fyne-cross
           PATH="$GOPATH/bin:$PATH"
       -
         name: Show files in bin
