@@ -27,6 +27,11 @@ jobs:
           go install github.com/fyne-io/fyne-cross
           PATH="$GOPATH/bin:$PATH"
       -
+        name: Show files in bin
+        run: |
+          sudo apt-get install tree
+          tree $GOPATH
+      -
         name: Cross Compile Linux Binaries
         run: $GOPATH/bin/fyne-cross linux -output . ./cmd/mnimidamon-client/main.go
       -
