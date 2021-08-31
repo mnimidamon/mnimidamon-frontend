@@ -1,0 +1,33 @@
+name: fyne cross
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  xgo:
+    strategy:
+      fail-fast: false
+      matrix:
+        go_version:
+          - 1.15.x
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Fyne Cross
+        run: |
+          go get github.com/fyne-io/fyne-cross
+
+      - name: Cross Compile Linux Binaries
+        run: |
+          fyne-cross linux -output linux/mnimidamon-client ./cmd/mnimidamon-client
+
+      - name: Cross Compile Windows Binaries
+        run: |
+          fyne-cross windows -output windows/mnimidamon-client ./cmd/mnimidamon-client
+
+      - name: Cross Compile Darwin Binaries
+        run: |
+          fyne-cross darwin -output darwin/mnimidamon-client ./cmd/mnimidamon-client
