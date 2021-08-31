@@ -29,4 +29,5 @@ jobs:
           x: false
           race: false
           ldflags: -s -w
+          pkg: cmd/mnimidamon-client/main.go
           buildmode: default
