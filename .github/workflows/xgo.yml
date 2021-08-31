@@ -24,7 +24,7 @@ jobs:
           go_version: ${{ matrix.go_version }}
           dest: dist
           prefix: mnimidamon-client
-          targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/386,darwin/amd64
+          targets: windows/386,windows/amd64,linux/386,linux/amd64,linux/arm,darwin/386,darwin/amd64
           v: true
           x: false
           race: false
