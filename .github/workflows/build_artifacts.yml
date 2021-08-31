@@ -60,6 +60,7 @@ jobs:
         with:
           draft: true
           files: |
-            $GITHUB_WORKSPACE/dist/*.*
+            dist/*.tar.gz
+            dist/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
