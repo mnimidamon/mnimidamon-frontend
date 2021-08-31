@@ -28,13 +28,13 @@ jobs:
           PATH="$GOPATH/bin:$PATH"
       -
         name: Cross Compile Linux Binaries
-        run: fyne-cross linux -output . ./cmd/mnimidamon-client/main.go
+        run: $GOPATH/bin/fyne-cross linux -output . ./cmd/mnimidamon-client/main.go
       -
         name: Cross Compile Windows Binaries
-        run: fyne-cross windows -output . ./cmd/mnimidamon-client/main.go
+        run: $GOPATH/bin/fyne-cross windows -output . ./cmd/mnimidamon-client/main.go
       -
         name: Cross Compile Darwin Binaries
-        run: fyne-cross darwin -output . ./cmd/mnimidamon-client/main.go
+        run: $GOPATH/bin/fyne-cross darwin -output . ./cmd/mnimidamon-client/main.go
       -
         name: Move artifacts
         run: |
