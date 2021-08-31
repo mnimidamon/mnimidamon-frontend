@@ -31,16 +31,16 @@ jobs:
         name: Show files in bin
         run: |
           sudo apt-get install tree
-          tree $GOPATH
+          tree ..
       -
         name: Cross Compile Linux Binaries
-        run: $GOPATH/bin/fyne-cross linux -output . ./cmd/mnimidamon-client/main.go
+        run: ./fyne-cross linux -output . ./cmd/mnimidamon-client/main.go
       -
         name: Cross Compile Windows Binaries
-        run: $GOPATH/bin/fyne-cross windows -output . ./cmd/mnimidamon-client/main.go
+        run: ./fyne-cross windows -output . ./cmd/mnimidamon-client/main.go
       -
         name: Cross Compile Darwin Binaries
-        run: $GOPATH/bin/fyne-cross darwin -output . ./cmd/mnimidamon-client/main.go
+        run: ./fyne-cross darwin -output . ./cmd/mnimidamon-client/main.go
       -
         name: Move artifacts
         run: |
