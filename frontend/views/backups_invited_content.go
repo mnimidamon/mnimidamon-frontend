@@ -639,16 +639,15 @@ func NewBackupCanvasObject(b *models.Backup) fyne.CanvasObject {
 
 	toolbar := widget.NewToolbar()
 
+	// If it's stored locally. Show an option to decrypt it.
+	if services.BackupStorage.IsStored(int(b.BackupID)) {
+		toolbar.Append(widget.NewToolbarAction(resources.FileLockSvg, func() {
+			dialogDecryptBackup(b)
+		}))
+	}
+
 	// If it's the backup owner.
 	if b.OwnerID == viewmodels.CurrentUser.Model.UserID {
-		// If it's stored locally. Show an option to decrypt it.
-		if services.BackupStorage.IsStored(int(b.BackupID)) {
-			toolbar.Append(widget.NewToolbarAction(resources.FileLockSvg, func() {
-				dialogDecryptBackup(b)
-			}))
-		} else {
-			infoLayout.Add(widget.NewLabel("not downloaded"))
-		}
 
 		// Add the delete option.
 		toolbar.Append(widget.NewToolbarAction(resources.TrashDeleteSvg, func() {

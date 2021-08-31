@@ -103,7 +103,7 @@ func init() {
 	StartScreen = container.NewPadded(
 		container.NewVBox(
 			// Title bar.
-			widget.NewLabelWithStyle("Mnimidamon setup", fyne.TextAlignCenter, fyne.TextStyle{
+			widget.NewLabelWithStyle("mnimidamon setup", fyne.TextAlignCenter, fyne.TextStyle{
 				Monospace: true,
 			}),
 			form,
