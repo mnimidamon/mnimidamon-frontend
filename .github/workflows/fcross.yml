@@ -59,7 +59,7 @@ jobs:
         with:
           name: distributions
           path: |
-            $GITHUB_WORKSPACE/dist/**/*.*
+            $GITHUB_WORKSPACE/dist/*.*
           if-no-files-found: error
       -
         name: GitHub Release
@@ -68,6 +68,6 @@ jobs:
         with:
           draft: true
           files: |
-            $GITHUB_WORKSPACE/dist/**/*.*
+            $GITHUB_WORKSPACE/dist/*.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
