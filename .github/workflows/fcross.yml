@@ -34,7 +34,7 @@ jobs:
           tree ..
       -
         name: Test Fyne Cross
-        run:
+        run: |
           ./fyne-cross windows -help
           ./fyne-cross darwin -help
           ./fyne-cross linux -help
