@@ -2,8 +2,6 @@ name: build binaries
 
 on:
   push:
-    branches:
-      - 'master'
     tags:
       - 'v*'
     paths-ignore:
@@ -49,11 +47,11 @@ jobs:
       - name: Move and Rename Binaries
         run: |
           sudo mkdir $GITHUB_WORKSPACE/dist
-          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-386/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-client_windows-386.exe.zip
-          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-amd64/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-client_windows-amd64.exe.zip
-          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-amd64/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-amd64.tar.gz
-          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-386/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-386.tar.gz
-          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-arm/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client_linux-arm.tar.gz
+          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-386/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-clienz-${GITHUB_REF##*/}_windows-386.exe.zip
+          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/windows-amd64/mnimidamon-client.exe.zip $GITHUB_WORKSPACE/dist/mnimimdamon-client-${GITHUB_REF##*/}_windows-amd64.exe.zip
+          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-amd64/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client-${GITHUB_REF##*/}_linux-amd64.tar.gz
+          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-386/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client-${GITHUB_REF##*/}_linux-386.tar.gz
+          sudo mv $GITHUB_WORKSPACE/fyne-cross/dist/linux-arm/mnimidamon-client.tar.gz $GITHUB_WORKSPACE/dist/mnimimdamon-client-${GITHUB_REF##*/}_linux-arm.tar.gz
       - name: Show Files
         run: |
           tree .
