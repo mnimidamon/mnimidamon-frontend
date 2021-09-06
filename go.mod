@@ -4,7 +4,6 @@ go 1.15
 
 require (
 	fyne.io/fyne/v2 v2.0.3
-	github.com/fyne-io/fyne-cross v1.1.0 // indirect
 	github.com/go-openapi/errors v0.20.0
 	github.com/go-openapi/runtime v0.19.29
 	github.com/go-openapi/strfmt v0.20.1
