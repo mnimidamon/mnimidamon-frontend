@@ -2,11 +2,9 @@ package services
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"mnimidamonbackend/frontend/events"
 	"mnimidamonbackend/frontend/global"
-	"mnimidamonbackend/models"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -63,9 +61,12 @@ func (bs *backupStoreImpl) Get(backupID int) (*os.File, error) {
 	return os.Open(bs.GetBackupPath(backupID))
 }
 
-func (bs *backupStoreImpl) Save(backup models.Backup, readCloser io.ReadCloser) error {
-	// TODO poglej kak je na stežniku
-	panic("implement me")
+func (bs *backupStoreImpl) Create(backupID int) (*os.File, error) {
+	return os.Create(bs.GetBackupPath(backupID))
+}
+
+func (bs *backupStoreImpl) CreateTemp(backupID int) (*os.File, error) {
+	return os.Create(bs.GetTempPath(strconv.Itoa(backupID)))
 }
 
 func (bs *backupStoreImpl) makeRequiredFolders() error {

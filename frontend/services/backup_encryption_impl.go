@@ -83,7 +83,7 @@ func (be *backupEncryptionImpl) Encrypt(payload *models.InitializeGroupBackupPay
 	}
 
 	// Calculate the hash.
-	hash, err := calculateReaderHash(outFile)
+	hash, err := CalculateReaderHash(outFile)
 	if err != nil {
 		return nil, fmt.Errorf("%w when hashing %v", ErrEncrypting, err)
 	}
@@ -175,7 +175,7 @@ func (be *backupEncryptionImpl) Decrypt(backup *models.Backup, key EncryptionKey
 	return nil
 }
 
-func calculateReaderHash(rc io.Reader) (string, error) {
+func CalculateReaderHash(rc io.Reader) (string, error) {
 	h := sha256.New()
 
 	if _, err := io.Copy(h, rc); err != nil {

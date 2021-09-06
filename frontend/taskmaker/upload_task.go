@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"mnimidamonbackend/client/backup"
+	"mnimidamonbackend/frontend/global"
 	"mnimidamonbackend/frontend/services"
 	"mnimidamonbackend/frontend/views/server"
 	"mnimidamonbackend/frontend/views/viewmodels"
@@ -36,6 +37,7 @@ func (task *UploadTask) GetProgress() int {
 
 	offset, err := task.File.Seek(0, io.SeekCurrent)
 	percentage := int(float64(offset)/float64(task.Size) * 100)
+	global.Log("offset %v, size %v, percentage %v", offset, task.Size, percentage)
 	if err != nil {
 		return 100
 	}
@@ -47,7 +49,7 @@ func (task *UploadTask) Execute(ctx context.Context) error {
 	file, err := services.BackupStorage.Get(int(task.backup.BackupID))
 
 	if err != nil {
-		return nil
+		return err
 	}
 	defer file.Close()
 
@@ -92,3 +94,5 @@ func shortenName(name string) string {
 	}
 	return name
 }
+
+

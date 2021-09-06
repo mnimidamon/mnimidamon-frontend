@@ -84,9 +84,12 @@ func (t *taskMakerImpl) TaskQueuer(ctx context.Context) {
 			deletionTasks := GetAllDeletionTasks(backups)
 			// Get the upload tasks.
 			uploadTasks := GetAllUploadTasks(backups)
+			// Get the download tasks.
+			downloadTasks := GetAllDownloadTasks(backups)
 
 			t.tasks = append(t.tasks, deletionTasks...)
 			t.tasks = append(t.tasks, uploadTasks...)
+			t.tasks = append(t.tasks, downloadTasks...)
 
 			// Execute every task queued.
 			t.ExecuteTasks(ctx)
