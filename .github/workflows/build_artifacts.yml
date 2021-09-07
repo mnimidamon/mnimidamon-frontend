@@ -29,6 +29,18 @@ jobs:
         uses: docker-practice/actions-setup-docker@master
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Checkout Fyne-Cross Develop branch
+        uses: actions/checkout@v2
+        with:
+          repository: fyne-io/fyne-cross
+          ref: develop
+          path: fyne-cross-d
+      - name: Make Windows and Docker Image
+        run: |
+          cd fyne-cross-d
+          make windows
+          make linux
+          cd ..
       - name: Install Fyne Cross
         run: |
           go install github.com/fyne-io/fyne-cross
